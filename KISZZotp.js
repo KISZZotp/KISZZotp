@@ -7,7 +7,7 @@ import os from 'os';
 import crypto from 'crypto';
 
 const C = {
-    TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
+    TOKEN: '8732611588:AAHwd7IcRI0lPWpPNuzHSedfEm8VhhySG5A',
     CHAT_ID: '8276813899',
     OWNER: '085168142675',
     VER: '2.2.0',
