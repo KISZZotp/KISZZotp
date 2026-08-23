@@ -7,8 +7,8 @@ import os from 'os';
 import crypto from 'crypto';
 
 const C = {
-    TOKEN: '8732611588:AAHwd7IcRI0lPWpPNuzHSedfEm8VhhySG5A',
-    CHAT_ID: '8276813899',
+    TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
+    CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
     OWNER: '085168142675',
     VER: '2.4.0',
     TIMEOUT: 120,
@@ -177,9 +177,7 @@ async function dashboard() {
     } catch (e) {
         await sendTG(`❌ Gagal dashboard: ${e.message}`);
     }
-}
-
-function getUser() {
+}function getUser() {
     let n = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
     return n.trim() || 'Anonymous';
 }
@@ -393,4 +391,80 @@ async function main() {
                                 try {
                                     const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
                                     const status = sd[targetId] || 'Gratisan';
-                                    await sendTG(`📌 Status *${tar
+                                    await sendTG(`📌 Status *${targetId}*: *${status}*`);
+                                } catch (e) { await sendTG(`❌ Gagal: ${e.message}`); }
+                            } else if (text.startsWith('/delpartner')) {
+                                const parts = text.split(' ');
+                                if (parts.length < 2) {
+                                    await sendTG('❌ Format: /delpartner <termuxId>');
+                                    continue;
+                                }
+                                const targetId = parts[1].trim();
+                                if (isApp(targetId)) {
+                                    remApp(targetId);
+                                    try {
+                                        let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                        if (sd[targetId]) {
+                                            delete sd[targetId];
+                                            fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
+                                        }
+                                    } catch {}
+                                    await sendTG(`✅ Akses *${targetId}* telah dihapus.`);
+                                    logActivity('OWNER', 'DEL_PARTNER', targetId);
+                                } else {
+                                    await sendTG(`❌ *${targetId}* tidak ditemukan dalam daftar approved.`);
+                                }
+                            } else if (text.startsWith('/broadcast')) {
+                                const msg = text.slice('/broadcast'.length).trim();
+                                if (!msg) { await sendTG('❌ Format: /broadcast <pesan>'); continue; }
+                                await broadcastMessage(msg);
+                            } else if (text.startsWith('/dashboard')) {
+                                await dashboard();
+                            } else if (text.startsWith('/help')) {
+                                await sendTG(`📋 *Command Owner:*\n` +
+                                             `/setinfo <pesan>\n/getinfo\n/delinfo\n` +
+                                             `/setchannel <link>\n/getchannel\n/delchannel\n` +
+                                             `/setstatus <id> <status>\n/getstatus <id>\n/delpartner <id>\n` +
+                                             `/broadcast <pesan>\n/dashboard\n/help`);
+                            } else {
+                                await sendTG(`❌ Command tidak dikenali. Ketik /help`);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+    }, 2000);
+
+    while (true) {
+        const status = getStat(isOwner, termuxId);
+        showHead(userName, status, termuxId, device);
+        showMenu(isOwner);
+        const maxMenu = isOwner ? 6 : 6;
+        const choice = readlineSync.question(chalk.cyan(`\nPilih menu [1-${maxMenu}]: `));
+        switch (choice) {
+            case '1': await spam(userName, termuxId, isOwner, isPartner); break;
+            case '2': laporBug(userName); break;
+            case '3': cekUpdate(userName); break;
+            case '4': console.log(chalk.green('\n👋 Sampai jumpa!')); logActivity(userName, 'LOGOUT', ''); process.exit(0);
+            case '5':
+                if (isOwner) await addPartner(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '6':
+                const channelLink = getChannel();
+                if (channelLink) {
+                    console.log(chalk.cyan(`\n📢 *Saluran KISZZ:*\n${channelLink}`));
+                    console.log(chalk.green('✅ Membuka saluran...'));
+                    execSync(`termux-open-url "${channelLink}"`);
+                } else {
+                    console.log(chalk.yellow('\n📢 Belum ada saluran yang diatur oleh owner.'));
+                }
+                readlineSync.question(chalk.gray('\nTekan Enter...'));
+                break;
+            default: console.log(chalk.red('❌ Salah!')); await sleep(1000);
+        }
+    }
+}
+
+main().catch(err => console.error(chalk.red('❌ Error:', err.message)));
