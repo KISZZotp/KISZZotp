@@ -3,6 +3,9 @@
   "version": "1.2.0",
   "main": "KISZZotp.js",
   "type": "module",
+  "scripts": {
+    "start": "node KISZZotp.js"
+  },
   "dependencies": {
     "axios": "^1.7.2",
     "chalk": "^5.3.0",
