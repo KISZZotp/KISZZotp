@@ -44,17 +44,10 @@ function delInfo() {
 
 function getChannel() {
     try {
-        const path = 'channel.json';
-        if (!fs.existsSync(path)) {
-            console.log('channel.json not found');
-            return null;
-        }
-        const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+        if (!fs.existsSync('channel.json')) return null;
+        const data = JSON.parse(fs.readFileSync('channel.json'));
         return data.link || null;
-    } catch (e) {
-        console.log('Error reading channel.json:', e.message);
-        return null;
-    }
+    } catch { return null; }
 }
 function setChannel(link) {
     try {
@@ -398,4 +391,6 @@ async function main() {
                                 if (parts.length < 2) { await sendTG('❌ Format: /getstatus <id>'); continue; }
                                 const targetId = parts[1].trim();
                                 try {
-                                    const sd = fs.existsSync('status.json') ? JSON.parse(fs.r
+                                    const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                    const status = sd[targetId] || 'Gratisan';
+                                    await sendTG(`📌 Status *${tar
