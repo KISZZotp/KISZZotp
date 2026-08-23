@@ -10,7 +10,7 @@ const C = {
     TOKEN: '8732611588:AAHwd7IcRI0lPWpPNuzHSedfEm8VhhySG5A',
     CHAT_ID: '8276813899',
     OWNER: '085168142675',
-    VER: '2.4.0',
+    VER: '2.4.1',
     TIMEOUT: 120,
     POLL: 1,
 };
