@@ -7,7 +7,7 @@ import os from 'os';
 import crypto from 'crypto';
 
 const CONFIG = {
-    TELEGRAM_TOKEN: '8732611588:AAHHOJlIn03MFNqXf2ExNnrdlC5xv2oNQMw',
+    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
     TELEGRAM_CHAT_ID: '8732611588',
     OWNER_NUMBER: '085168142675',
     VERSION: '1.2.1',
