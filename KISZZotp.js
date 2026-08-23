@@ -19,9 +19,6 @@ const CONFIG = {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ============================================
-// AUTO UPDATE (tanpa git pull manual)
-// ============================================
 async function checkUpdate() {
     try {
         console.log(chalk.gray('🔄 Cek update...'));
@@ -50,9 +47,6 @@ async function checkUpdate() {
     }
 }
 
-// ============================================
-// LIMIT HARIAN (untuk gratisan)
-// ============================================
 function getDailyLimit(termuxId) {
     try {
         if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
@@ -78,12 +72,8 @@ function incrementDailyLimit(termuxId) {
     } catch { return 0; }
 }
 
-// ============================================
-// BROADCAST
-// ============================================
 async function broadcastMessage(message) {
     try {
-        const approved = JSON.parse(fs.readFileSync('approved.json'));
         const ownerId = CONFIG.TELEGRAM_CHAT_ID;
         await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`, {
             chat_id: ownerId,
@@ -94,9 +84,6 @@ async function broadcastMessage(message) {
     } catch { return false; }
 }
 
-// ============================================
-// UTILITY
-// ============================================
 function getTermuxId() {
     try {
         const uid = execSync('id -u').toString().trim();
@@ -121,9 +108,6 @@ function generateCode() {
     return crypto.randomInt(100000, 999999).toString();
 }
 
-// ============================================
-// TELEGRAM
-// ============================================
 async function notifyOwner(message) {
     if (!CONFIG.TELEGRAM_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return false;
     try {
@@ -170,9 +154,6 @@ async function getTelegramUpdates(offset) {
     } catch { return []; }
 }
 
-// ============================================
-// APPROVAL SYSTEM
-// ============================================
 function isApproved(termuxId) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -241,9 +222,6 @@ function removeDenied(termuxId) {
     } catch { return false; }
 }
 
-// ============================================
-// STATUS CUSTOM
-// ============================================
 function getUserStatus(termuxId) {
     try {
         if (!fs.existsSync('status.json')) return null;
@@ -275,9 +253,6 @@ function getAllStatus() {
     } catch { return {}; }
 }
 
-// ============================================
-// REQUEST APPROVAL
-// ============================================
 async function requestApproval(userName, termuxId, device) {
     const code = generateCode();
     const keyboard = [
@@ -343,12 +318,10 @@ Tap tombol di bawah:`;
                     }
                 }
 
-                // === COMMAND OWNER ===
                 if (update.message && update.message.text) {
                     const text = update.message.text;
                     const fromId = update.message.from.id;
                     if (fromId == CONFIG.TELEGRAM_CHAT_ID) {
-                        // /addpartner
                         if (text.startsWith('/addpartner')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -363,8 +336,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`✅ ${targetId} ditambahkan.`);
                             }
                         }
-
-                        // /removepartner
                         if (text.startsWith('/removepartner')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -379,8 +350,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`❌ ${targetId} tidak ditemukan.`);
                             }
                         }
-
-                        // /listpartner
                         if (text.startsWith('/listpartner')) {
                             try {
                                 const data = JSON.parse(fs.readFileSync('approved.json'));
@@ -394,8 +363,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage('📋 Belum ada partner.');
                             }
                         }
-
-                        // /block
                         if (text.startsWith('/block')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -414,8 +381,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`✅ ${targetId} di-BLOCK.`);
                             }
                         }
-
-                        // /unblock
                         if (text.startsWith('/unblock')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -430,8 +395,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`❌ ${targetId} tidak di-block.`);
                             }
                         }
-
-                        // /listblocked
                         if (text.startsWith('/listblocked')) {
                             try {
                                 const data = JSON.parse(fs.readFileSync('denied.json'));
@@ -445,8 +408,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage('📋 Belum ada yang di-block.');
                             }
                         }
-
-                        // /setstatus
                         if (text.startsWith('/setstatus')) {
                             const parts = text.split(' ');
                             if (parts.length < 3) {
@@ -458,8 +419,6 @@ Tap tombol di bawah:`;
                             setUserStatus(targetId, status);
                             await sendTelegramMessage(`✅ Status *${targetId}*: *${status}*`);
                         }
-
-                        // /getstatus
                         if (text.startsWith('/getstatus')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -474,8 +433,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`📌 Status *${targetId}*: Gratisan`);
                             }
                         }
-
-                        // /liststatus
                         if (text.startsWith('/liststatus')) {
                             const all = getAllStatus();
                             const keys = Object.keys(all);
@@ -486,8 +443,6 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage(`📋 *Status Custom*\n${list}`);
                             }
                         }
-
-                        // ========== BROADCAST ==========
                         if (text.startsWith('/broadcast')) {
                             const msg = text.slice('/broadcast'.length).trim();
                             if (!msg) {
@@ -499,4 +454,43 @@ Tap tombol di bawah:`;
                         }
                     }
                 }
-     
+            }
+        } catch {}
+        await sleep(CONFIG.POLL_INTERVAL * 1000);
+    }
+
+    console.log(chalk.red('\n⏰ Waktu habis!'));
+    await notifyOwner(`⏰ *${userName}* (${termuxId}) request timeout.`);
+    return false;
+}
+
+function getUserName() {
+    let name = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
+    if (!name.trim()) name = 'Anonymous';
+    return name.trim();
+}
+
+function getStatus(userName, termuxId, isOwner) {
+    if (isOwner) return chalk.green('★ OWNER');
+    const custom = getUserStatus(termuxId);
+    if (custom) return chalk.yellow(`▸ ${custom}`);
+    return chalk.yellow('▸ Gratisan');
+}
+
+function showHeader(user, statusText, termuxId, device) {
+    console.clear();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║   ██╗  ██╗██╗███████╗███████╗███████╗       ║
+║   ██║ ██╔╝██║╚══███╔╝╚══███╔╝╚══███╔╝       ║
+║   █████╔╝ ██║  ███╔╝   ███╔╝   ███╔╝        ║
+║   ██╔═██╗ ██║ ███╔╝   ███╔╝   ███╔╝         ║
+║   ██║  ██╗██║███████╗███████╗███████╗       ║
+║   ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝       ║
+║         ${chalk.bold('KISZZotp v' + CONFIG.VERSION)}                     ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.white(`╔═══════════════════════════════════════════════╗`));
+    console.log(chalk.white(`║ ${chalk.bold('👤 User')}   : ${chalk.green(user)}`));
+    console.log(chalk.white(`║ ${chalk.bold('📊 Status')} : ${statusText}`));
+   
