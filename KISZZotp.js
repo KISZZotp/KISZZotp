@@ -5,17 +5,94 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
+import { exec } from 'child_process';
 
 const CONFIG = {
-    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
-    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
+    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
+    TELEGRAM_CHAT_ID: '8276813899',
     OWNER_NUMBER: '085168142675',
-    VERSION: '1.6.0',
+    VERSION: '2.0.0',
     APPROVAL_TIMEOUT: 120,
     POLL_INTERVAL: 1,
+    GITHUB_REPO: 'https://github.com/KISZZotp/KISZZotp',
 };
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ============================================
+// AUTO UPDATE (tanpa git pull manual)
+// ============================================
+async function checkUpdate() {
+    try {
+        console.log(chalk.gray('🔄 Cek update...'));
+        const res = await axios.get('https://api.github.com/repos/KISZZotp/KISZZotp/contents/KISZZotp.js', {
+            headers: { 'Accept': 'application/vnd.github.v3.raw' }
+        });
+        const remoteHash = res.data.split('\n')[0];
+        const currentHash = fs.readFileSync('KISZZotp.js', 'utf-8').split('\n')[0];
+        if (remoteHash !== currentHash) {
+            console.log(chalk.yellow('📢 Ada update baru! Mengunduh...'));
+            exec('git pull', (err, stdout, stderr) => {
+                if (err) {
+                    console.log(chalk.red('❌ Gagal update:', stderr));
+                } else {
+                    console.log(chalk.green('✅ Update berhasil! Restart script...'));
+                    process.exit(0);
+                }
+            });
+            return true;
+        }
+        console.log(chalk.green('✅ Sudah versi terbaru.'));
+        return false;
+    } catch (e) {
+        console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...'));
+        return false;
+    }
+}
+
+// ============================================
+// LIMIT HARIAN (untuk gratisan)
+// ============================================
+function getDailyLimit(termuxId) {
+    try {
+        if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
+        const data = JSON.parse(fs.readFileSync('limits.json'));
+        return data[termuxId] || { count: 0, date: new Date().toDateString() };
+    } catch { return { count: 0, date: new Date().toDateString() }; }
+}
+
+function incrementDailyLimit(termuxId) {
+    try {
+        let data = {};
+        if (fs.existsSync('limits.json')) {
+            data = JSON.parse(fs.readFileSync('limits.json'));
+        }
+        const today = new Date().toDateString();
+        if (!data[termuxId] || data[termuxId].date !== today) {
+            data[termuxId] = { count: 1, date: today };
+        } else {
+            data[termuxId].count += 1;
+        }
+        fs.writeFileSync('limits.json', JSON.stringify(data, null, 2));
+        return data[termuxId].count;
+    } catch { return 0; }
+}
+
+// ============================================
+// BROADCAST
+// ============================================
+async function broadcastMessage(message) {
+    try {
+        const approved = JSON.parse(fs.readFileSync('approved.json'));
+        const ownerId = CONFIG.TELEGRAM_CHAT_ID;
+        await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`, {
+            chat_id: ownerId,
+            text: `📢 *BROADCAST*\n${message}`,
+            parse_mode: 'Markdown'
+        });
+        return true;
+    } catch { return false; }
+}
 
 // ============================================
 // UTILITY
@@ -42,40 +119,6 @@ function getCurrentTime() {
 
 function generateCode() {
     return crypto.randomInt(100000, 999999).toString();
-}
-
-// ============================================
-// STATUS CUSTOM
-// ============================================
-function getUserStatus(termuxId) {
-    try {
-        if (!fs.existsSync('status.json')) return null;
-        const data = JSON.parse(fs.readFileSync('status.json'));
-        return data[termuxId] || null;
-    } catch { return null; }
-}
-
-function setUserStatus(termuxId, status) {
-    try {
-        let data = {};
-        if (fs.existsSync('status.json')) {
-            data = JSON.parse(fs.readFileSync('status.json'));
-        }
-        if (status === null || status === undefined || status.trim() === '') {
-            delete data[termuxId];
-        } else {
-            data[termuxId] = status.trim();
-        }
-        fs.writeFileSync('status.json', JSON.stringify(data, null, 2));
-        return true;
-    } catch { return false; }
-}
-
-function getAllStatus() {
-    try {
-        if (!fs.existsSync('status.json')) return {};
-        return JSON.parse(fs.readFileSync('status.json'));
-    } catch { return {}; }
 }
 
 // ============================================
@@ -198,6 +241,43 @@ function removeDenied(termuxId) {
     } catch { return false; }
 }
 
+// ============================================
+// STATUS CUSTOM
+// ============================================
+function getUserStatus(termuxId) {
+    try {
+        if (!fs.existsSync('status.json')) return null;
+        const data = JSON.parse(fs.readFileSync('status.json'));
+        return data[termuxId] || null;
+    } catch { return null; }
+}
+
+function setUserStatus(termuxId, status) {
+    try {
+        let data = {};
+        if (fs.existsSync('status.json')) {
+            data = JSON.parse(fs.readFileSync('status.json'));
+        }
+        if (status === null || status === undefined || status.trim() === '') {
+            delete data[termuxId];
+        } else {
+            data[termuxId] = status.trim();
+        }
+        fs.writeFileSync('status.json', JSON.stringify(data, null, 2));
+        return true;
+    } catch { return false; }
+}
+
+function getAllStatus() {
+    try {
+        if (!fs.existsSync('status.json')) return {};
+        return JSON.parse(fs.readFileSync('status.json'));
+    } catch { return {}; }
+}
+
+// ============================================
+// REQUEST APPROVAL
+// ============================================
 async function requestApproval(userName, termuxId, device) {
     const code = generateCode();
     const keyboard = [
@@ -366,24 +446,20 @@ Tap tombol di bawah:`;
                             }
                         }
 
-                        // ========== FITUR SETSTATUS ==========
-                        // /setstatus <termuxId> <status>
+                        // /setstatus
                         if (text.startsWith('/setstatus')) {
                             const parts = text.split(' ');
                             if (parts.length < 3) {
-                                await sendTelegramMessage('❌ Format: /setstatus <termuxId> <status>\nContoh: /setstatus 10058@localhost Gembel');
+                                await sendTelegramMessage('❌ Format: /setstatus <termuxId> <status>');
                                 continue;
                             }
                             const targetId = parts[1].trim();
                             const status = parts.slice(2).join(' ');
-                            if (setUserStatus(targetId, status)) {
-                                await sendTelegramMessage(`✅ Status *${targetId}* diubah menjadi: *${status}*`);
-                            } else {
-                                await sendTelegramMessage(`❌ Gagal mengubah status ${targetId}.`);
-                            }
+                            setUserStatus(targetId, status);
+                            await sendTelegramMessage(`✅ Status *${targetId}*: *${status}*`);
                         }
 
-                        // /getstatus <termuxId>
+                        // /getstatus
                         if (text.startsWith('/getstatus')) {
                             const parts = text.split(' ');
                             if (parts.length < 2) {
@@ -395,7 +471,7 @@ Tap tombol di bawah:`;
                             if (status) {
                                 await sendTelegramMessage(`📌 Status *${targetId}*: *${status}*`);
                             } else {
-                                await sendTelegramMessage(`📌 Status *${targetId}*: (default) Gratisan`);
+                                await sendTelegramMessage(`📌 Status *${targetId}*: Gratisan`);
                             }
                         }
 
@@ -407,85 +483,20 @@ Tap tombol di bawah:`;
                                 await sendTelegramMessage('📋 Belum ada status custom.');
                             } else {
                                 const list = keys.map(id => `- ${id}: ${all[id]}`).join('\n');
-                                await sendTelegramMessage(`📋 *Daftar Status Custom*\n${list}`);
+                                await sendTelegramMessage(`📋 *Status Custom*\n${list}`);
                             }
+                        }
+
+                        // ========== BROADCAST ==========
+                        if (text.startsWith('/broadcast')) {
+                            const msg = text.slice('/broadcast'.length).trim();
+                            if (!msg) {
+                                await sendTelegramMessage('❌ Format: /broadcast <pesan>');
+                                continue;
+                            }
+                            await broadcastMessage(msg);
+                            await sendTelegramMessage(`✅ Broadcast terkirim:\n${msg}`);
                         }
                     }
                 }
-            }
-        } catch {}
-        await sleep(CONFIG.POLL_INTERVAL * 1000);
-    }
-
-    console.log(chalk.red('\n⏰ Waktu habis!'));
-    await notifyOwner(`⏰ *${userName}* (${termuxId}) request timeout.`);
-    return false;
-}
-
-// ============================================
-// MENU & TAMPILAN
-// ============================================
-function getUserName() {
-    let name = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
-    if (!name.trim()) name = 'Anonymous';
-    return name.trim();
-}
-
-function getStatus(userName, termuxId, isOwner) {
-    if (isOwner) return chalk.green('★ OWNER');
-    const custom = getUserStatus(termuxId);
-    if (custom) return chalk.yellow(`▸ ${custom}`);
-    return chalk.yellow('▸ Gratisan');
-}
-
-function showHeader(user, statusText, termuxId, device) {
-    console.clear();
-    console.log(chalk.cyan(`
-╔═══════════════════════════════════════════════╗
-║   ██╗  ██╗██╗███████╗███████╗███████╗       ║
-║   ██║ ██╔╝██║╚══███╔╝╚══███╔╝╚══███╔╝       ║
-║   █████╔╝ ██║  ███╔╝   ███╔╝   ███╔╝        ║
-║   ██╔═██╗ ██║ ███╔╝   ███╔╝   ███╔╝         ║
-║   ██║  ██╗██║███████╗███████╗███████╗       ║
-║   ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝       ║
-║         ${chalk.bold('KISZZotp v' + CONFIG.VERSION)}                     ║
-╚═══════════════════════════════════════════════╝
-`));
-    console.log(chalk.white(`╔═══════════════════════════════════════════════╗`));
-    console.log(chalk.white(`║ ${chalk.bold('👤 User')}   : ${chalk.green(user)}`));
-    console.log(chalk.white(`║ ${chalk.bold('📊 Status')} : ${statusText}`));
-    console.log(chalk.white(`║ ${chalk.bold('🆔 ID')}     : ${chalk.blue(termuxId)}`));
-    console.log(chalk.white(`║ ${chalk.bold('📱 Device')} : ${chalk.magenta(device)}`));
-    console.log(chalk.white(`║ ${chalk.bold('⏰ Waktu')}  : ${chalk.gray(getCurrentTime())}`));
-    console.log(chalk.white(`╚═══════════════════════════════════════════════╝`));
-    console.log();
-}
-
-function showMenu(isOwner) {
-    console.log(chalk.yellow(`╔═══════════════════════════════════════════════╗`));
-    console.log(chalk.yellow(`║              📋  MENU UTAMA                  ║`));
-    console.log(chalk.yellow(`╠═══════════════════════════════════════════════╣`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('1.')} 🚀  Halaman Spammer OTP         ║`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('2.')} 🐛  Halaman Lapor Bug           ║`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('3.')} 🔄  Halaman Cek Update         ║`));
-    console.log(chalk.yellow(`║ ${chalk.cyan('4.')} ❌  Keluar                     ║`));
-    if (isOwner) {
-        console.log(chalk.yellow(`║ ${chalk.cyan('5.')} 👥  Add Partner (Owner Only)    ║`));
-    }
-    console.log(chalk.yellow(`╚═══════════════════════════════════════════════╝`));
-    console.log();
-}
-
-// ============================================
-// HALAMAN SPAMMER
-// ============================================
-async function halamanSpammer(user, termuxId) {
-    console.clear();
-    console.log(chalk.cyan(`
-╔═══════════════════════════════════════════════╗
-║         🚀  HALAMAN SPAMMER OTP              ║
-╚═══════════════════════════════════════════════╝
-`));
-
-    const target = readlineSync.question(chalk.white('📱 Masukkan nomor target (contoh: 08123456789): '));
-   
+     
