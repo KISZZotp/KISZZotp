@@ -114,7 +114,7 @@ function showMenu(isO) {
     console.log(chalk.cyan(`4.`) + ` ❌ Keluar`);
     if (isO) console.log(chalk.cyan(`5.`) + ` 👥 Add Partner (Owner Only)`);
     console.log(chalk.yellow(`─`.repeat(30)));
-                           }
+}
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan(`\n🚀 SPAMMER OTP\n`));
@@ -194,7 +194,6 @@ async function addPartner() {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== MAIN ======
 async function main() {
     console.clear();
     console.log(chalk.cyan(`\n╔═══════════════════════════════════════════════╗\n║     SELAMAT DATANG DI KISZZotp               ║\n╚═══════════════════════════════════════════════╝\n`));
@@ -221,7 +220,7 @@ async function main() {
         await sleep(1000);
     }
 
-    // ====== POLLING TELEGRAM COMMAND (OWNER) ======
+    // POLLING TELEGRAM COMMAND
     let offset = 0;
     (async function pollTelegram() {
         while (true) {
@@ -237,7 +236,7 @@ async function main() {
                                 if (text.startsWith('/setstatus')) {
                                     const parts = text.split(' ');
                                     if (parts.length < 3) {
-                                        await sendTG('❌ Format: /setstatus <termuxId> <status>\nContoh: /setstatus 10192@localhost Gembel');
+                                        await sendTG('❌ Format: /setstatus <termuxId> <status>');
                                         continue;
                                     }
                                     const targetId = parts[1].trim();
@@ -246,34 +245,54 @@ async function main() {
                                         let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
                                         sd[targetId] = status;
                                         fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
-                                        await sendTG(`✅ Status *${targetId}* berhasil diubah menjadi *${status}*`);
+                                        await sendTG(`✅ Status *${targetId}* -> *${status}*`);
                                     } catch (e) {
-                                        await sendTG(`❌ Gagal mengubah status: ${e.message}`);
+                                        await sendTG(`❌ Gagal: ${e.message}`);
                                     }
                                 }
                                 else if (text.startsWith('/getstatus')) {
                                     const parts = text.split(' ');
                                     if (parts.length < 2) {
-                                        await sendTG('❌ Format: /getstatus <termuxId>\nContoh: /getstatus 10192@localhost');
+                                        await sendTG('❌ Format: /getstatus <termuxId>');
                                         continue;
                                     }
                                     const targetId = parts[1].trim();
                                     try {
                                         const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        const status = sd[targetId] || 'Gratisan (belum diatur)';
+                                        const status = sd[targetId] || 'Gratisan';
                                         await sendTG(`📌 Status *${targetId}*: *${status}*`);
                                     } catch (e) {
-                                        await sendTG(`❌ Gagal mengambil status: ${e.message}`);
+                                        await sendTG(`❌ Gagal: ${e.message}`);
+                                    }
+                                }
+                                else if (text.startsWith('/delpartner')) {
+                                    const parts = text.split(' ');
+                                    if (parts.length < 2) {
+                                        await sendTG('❌ Format: /delpartner <termuxId>');
+                                        continue;
+                                    }
+                                    const targetId = parts[1].trim();
+                                    if (isApp(targetId)) {
+                                        remApp(targetId);
+                                        try {
+                                            let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                            if (sd[targetId]) delete sd[targetId];
+                                            fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
+                                        } catch {}
+                                        await sendTG(`✅ Akses *${targetId}* dihapus.`);
+                                    } else {
+                                        await sendTG(`❌ *${targetId}* tidak ditemukan.`);
                                     }
                                 }
                                 else if (text.startsWith('/help')) {
-                                    await sendTG(`📋 *Command tersedia untuk owner:*\n\n` +
-                                                 `/setstatus <termuxId> <status> - Ubah status user\n` +
-                                                 `/getstatus <termuxId> - Lihat status user\n` +
-                                                 `/help - Tampilkan bantuan ini`);
+                                    await sendTG(`📋 *Command Owner:*\n` +
+                                                 `/setstatus <id> <status>\n` +
+                                                 `/getstatus <id>\n` +
+                                                 `/delpartner <id>\n` +
+                                                 `/help`);
                                 }
                                 else {
-                                    await sendTG(`❌ Command tidak dikenali.\nKetik /help untuk daftar command.`);
+                                    await sendTG(`❌ Command tidak dikenali. Ketik /help`);
                                 }
                             }
                         }
@@ -284,14 +303,11 @@ async function main() {
         }
     })();
 
-    // ====== MENU UTAMA ======
     while (true) {
         const status = getStat(isOwner);
         showHead(userName, status, termuxId, device);
         showMenu(isOwner);
-
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-5]: '));
-
         switch (choice) {
             case '1': await spam(userName, termuxId, isOwner, isPartner); break;
             case '2': laporBug(); break;
@@ -299,9 +315,9 @@ async function main() {
             case '4': console.log(chalk.green('\n👋 Sampai jumpa!')); process.exit(0);
             case '5':
                 if (isOwner) await addPartner();
-                else console.log(chalk.red('❌ Menu khusus owner!'));
+                else console.log(chalk.red('❌ Menu owner!'));
                 break;
-            default: console.log(chalk.red('❌ Pilihan salah!')); await sleep(1000);
+            default: console.log(chalk.red('❌ Salah!')); await sleep(1000);
         }
     }
 }
