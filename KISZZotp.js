@@ -139,16 +139,27 @@ Tap tombol di bawah:`;
 
     console.log(chalk.green('✅ Request terkirim! Tunggu owner tap tombol...'));
 
+    // ========== PERBAIKAN: Skip update lama ==========
     let offset = 0;
+    // Ambil semua update yang sudah ada, tandai sebagai read
+    let existingUpdates = await getTelegramUpdates(offset);
+    if (existingUpdates.length > 0) {
+        offset = existingUpdates[existingUpdates.length - 1].update_id + 1;
+        console.log(chalk.gray(`   📌 Skip ${existingUpdates.length} update lama...`));
+    }
+
     const startTime = Date.now();
     while ((Date.now() - startTime) / 1000 < CONFIG.APPROVAL_TIMEOUT) {
         const updates = await getTelegramUpdates(offset);
         for (const update of updates) {
             offset = update.update_id + 1;
+
             if (update.callback_query) {
                 const data = update.callback_query.data;
                 const fromId = update.callback_query.from.id;
                 const callbackId = update.callback_query.id;
+
+                // Hanya owner yang bisa approve/deny
                 if (fromId == CONFIG.TELEGRAM_CHAT_ID) {
                     if (data === `approve_${code}`) {
                         await answerCallbackQuery(callbackId, '✅ Disetujui!');
@@ -173,7 +184,6 @@ Tap tombol di bawah:`;
     console.log(chalk.red('\n⏰ Waktu habis! Tidak ada respon dari owner.'));
     return false;
 }
-
 async function getTelegramUpdates(offset) {
     try {
         const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/getUpdates`;
