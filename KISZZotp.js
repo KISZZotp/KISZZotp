@@ -7,12 +7,12 @@ import os from 'os';
 import crypto from 'crypto';
 
 const CONFIG = {
-    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
-    TELEGRAM_CHAT_ID: '8276813899',
+    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
+    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
     OWNER_NUMBER: '085168142675',
-    VERSION: '1.3.0',
+    VERSION: '1.3.1',
     APPROVAL_TIMEOUT: 120,
-    POLL_INTERVAL: 3,
+    POLL_INTERVAL: 1, // <-- polling lebih cepat (1 detik)
 };
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -95,6 +95,14 @@ function isApproved(termuxId) {
     } catch { return false; }
 }
 
+function isDenied(termuxId) {
+    try {
+        if (!fs.existsSync('denied.json')) return false;
+        const data = JSON.parse(fs.readFileSync('denied.json'));
+        return data.includes(termuxId);
+    } catch { return false; }
+}
+
 function saveApproved(termuxId) {
     try {
         let data = [];
@@ -104,6 +112,20 @@ function saveApproved(termuxId) {
         if (!data.includes(termuxId)) {
             data.push(termuxId);
             fs.writeFileSync('approved.json', JSON.stringify(data, null, 2));
+        }
+        return true;
+    } catch { return false; }
+}
+
+function saveDenied(termuxId) {
+    try {
+        let data = [];
+        if (fs.existsSync('denied.json')) {
+            data = JSON.parse(fs.readFileSync('denied.json'));
+        }
+        if (!data.includes(termuxId)) {
+            data.push(termuxId);
+            fs.writeFileSync('denied.json', JSON.stringify(data, null, 2));
         }
         return true;
     } catch { return false; }
@@ -164,6 +186,7 @@ Tap tombol di bawah:`;
                         } else if (data === `deny_${code}`) {
                             await answerCallbackQuery(callbackId, '❌ Ditolak.');
                             console.log(chalk.red('\n❌ DENIED!'));
+                            saveDenied(termuxId);
                             await notifyOwner(`❌ *${userName}* (${termuxId}) di-DENY.`);
                             return false;
                         }
@@ -324,17 +347,37 @@ async function halamanCekUpdate(user, termuxId) {
 }
 
 async function main() {
+    // Bersihkan layar TOTAL
     console.clear();
+
     console.log(chalk.cyan(`
 ╔═══════════════════════════════════════════════╗
 ║     SELAMAT DATANG DI KISZZotp               ║
 ╚═══════════════════════════════════════════════╝
 `));
-await sleep(1500);   // Jeda 1.5 detik biar keliatan beda halaman
+
+    await sleep(1500); // jeda biar tampilan keliatan beda
+
     const userName = getUserName();
     const termuxId = getTermuxId();
     const device = getDeviceInfo();
     const isOwner = userName.toLowerCase() === 'kiszz';
+
+    // Cek apakah sudah ditolak sebelumnya
+    if (isDenied(termuxId)) {
+        console.clear();
+        console.log(chalk.red(`
+╔═══════════════════════════════════════════════╗
+║         ❌ AKSES DITOLAK                    ║
+║                                             ║
+║   Anda pernah ditolak oleh owner.           ║
+║   Tidak bisa mengakses script ini.          ║
+║                                             ║
+║   Hubungi owner untuk informasi lebih lanjut.║
+╚═══════════════════════════════════════════════╝
+`));
+        process.exit(1);
+    }
 
     if (!isOwner) {
         if (!isApproved(termuxId)) {
