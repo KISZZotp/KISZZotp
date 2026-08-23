@@ -17,7 +17,6 @@ const C = {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail = '') {
     try {
         const timestamp = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -26,7 +25,6 @@ function logActivity(user, action, detail = '') {
     } catch {}
 }
 
-// ====== INFO BOX ======
 function getInfo() {
     try {
         if (!fs.existsSync('info.json')) return null;
@@ -44,7 +42,6 @@ function delInfo() {
     try { if (fs.existsSync('info.json')) fs.unlinkSync('info.json'); return true; } catch { return false; }
 }
 
-// ====== CHANNEL ======
 function getChannel() {
     try {
         if (!fs.existsSync('channel.json')) return null;
@@ -62,7 +59,6 @@ function delChannel() {
     try { if (fs.existsSync('channel.json')) fs.unlinkSync('channel.json'); return true; } catch { return false; }
 }
 
-// ====== UTILITY ======
 function getID() {
     try { return `${execSync('id -u').toString().trim()}@${os.hostname()}`; } catch { return 'unknown'; }
 }
@@ -91,7 +87,6 @@ async function getUpd(off) {
     try { const r = await axios.get(`https://api.telegram.org/bot${C.TOKEN}/getUpdates`, { params: { offset: off, timeout: 10 } }); return r.data.result || []; } catch { return []; }
 }
 
-// ====== APPROVAL ======
 function isApp(id) {
     try { if (!fs.existsSync('approved.json')) return false; return JSON.parse(fs.readFileSync('approved.json')).includes(id); } catch { return false; }
 }
@@ -105,7 +100,6 @@ function getApprovedList() {
     try { return fs.existsSync('approved.json') ? JSON.parse(fs.readFileSync('approved.json')) : []; } catch { return []; }
 }
 
-// ====== LIMIT ======
 function getLimit(id) {
     try { if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() }; const d = JSON.parse(fs.readFileSync('limits.json')); return d[id] || { count: 0, date: new Date().toDateString() }; } catch { return { count: 0, date: new Date().toDateString() }; }
 }
@@ -113,7 +107,6 @@ function incLimit(id) {
     try { let d = fs.existsSync('limits.json') ? JSON.parse(fs.readFileSync('limits.json')) : {}; const today = new Date().toDateString(); if (!d[id] || d[id].date !== today) { d[id] = { count: 1, date: today }; } else { d[id].count += 1; } fs.writeFileSync('limits.json', JSON.stringify(d, null, 2)); return d[id].count; } catch { return 0; }
 }
 
-// ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
     const kb = [[{ text: '✅ Approve', callback_data: `app_${code}` }, { text: '❌ Deny', callback_data: `den_${code}` }]];
@@ -146,7 +139,6 @@ async function reqApp(user, id, dev) {
     return false;
 }
 
-// ====== BROADCAST ======
 async function broadcastMessage(message) {
     try {
         const users = getApprovedList();
@@ -167,7 +159,6 @@ async function broadcastMessage(message) {
     }
 }
 
-// ====== DASHBOARD ======
 async function dashboard() {
     try {
         const users = getApprovedList();
@@ -188,7 +179,6 @@ async function dashboard() {
     }
 }
 
-// ====== USER INTERFACE ======
 function getUser() {
     let n = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
     return n.trim() || 'Anonymous';
@@ -228,7 +218,6 @@ function showMenu(isO) {
     console.log(chalk.yellow(`─`.repeat(30)));
 }
 
-// ====== SPAMMER ======
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan(`\n🚀 SPAMMER OTP\n`));
@@ -311,7 +300,6 @@ async function addPartner(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== MAIN ======
 async function main() {
     console.clear();
     console.log(chalk.cyan(`\n╔═══════════════════════════════════════════════╗\n║     SELAMAT DATANG DI KISZZotp               ║\n╚═══════════════════════════════════════════════╝\n`));
@@ -322,7 +310,6 @@ async function main() {
     const isOwner = userName.toLowerCase() === 'kiszzaja';
     const isPartner = isApp(termuxId);
 
-    // Tampilkan broadcast terbaru
     try {
         if (fs.existsSync('broadcast.json')) {
             const bd = JSON.parse(fs.readFileSync('broadcast.json'));
@@ -352,7 +339,6 @@ async function main() {
         await sleep(1000);
     }
 
-    // ====== POLLING TELEGRAM ======
     let offset = 0;
     setInterval(async () => {
         if (isOwner) {
@@ -364,7 +350,6 @@ async function main() {
                         const text = u.message.text;
                         const fromId = u.message.from.id;
                         if (fromId == C.CHAT_ID) {
-                            // SET INFO
                             if (text.startsWith('/setinfo')) {
                                 const msg = text.slice('/setinfo'.length).trim();
                                 if (!msg) { await sendTG('❌ Format: /setinfo <pesan>'); continue; }
@@ -377,9 +362,7 @@ async function main() {
                             } else if (text.startsWith('/delinfo')) {
                                 if (delInfo()) { await sendTG('✅ Info dihapus.'); logActivity('OWNER', 'DEL_INFO', ''); }
                                 else { await sendTG('❌ Gagal hapus info.'); }
-                            }
-                            // SET CHANNEL
-                            else if (text.startsWith('/setchannel')) {
+                            } else if (text.startsWith('/setchannel')) {
                                 const link = text.slice('/setchannel'.length).trim();
                                 if (!link) { await sendTG('❌ Format: /setchannel <link>'); continue; }
                                 if (setChannel(link)) { await sendTG(`✅ Saluran diatur:\n${link}`); logActivity('OWNER', 'SET_CHANNEL', link); }
@@ -391,9 +374,7 @@ async function main() {
                             } else if (text.startsWith('/delchannel')) {
                                 if (delChannel()) { await sendTG('✅ Saluran dihapus.'); logActivity('OWNER', 'DEL_CHANNEL', ''); }
                                 else { await sendTG('❌ Gagal hapus.'); }
-                            }
-                            // SET STATUS
-                            else if (text.startsWith('/setstatus')) {
+                            } else if (text.startsWith('/setstatus')) {
                                 const parts = text.split(' ');
                                 if (parts.length < 3) { await sendTG('❌ Format: /setstatus <id> <status>'); continue; }
                                 const targetId = parts[1].trim();
@@ -405,4 +386,11 @@ async function main() {
                                     await sendTG(`✅ Status *${targetId}* -> *${status}*`);
                                     logActivity('OWNER', 'SET_STATUS', `${targetId} -> ${status}`);
                                 } catch (e) { await sendTG(`❌ Gagal: ${e.message}`); }
-                            } else if (text.startsWith(
+                            } else if (text.startsWith('/getstatus')) {
+                                const parts = text.split(' ');
+                                if (parts.length < 2) { await sendTG('❌ Format: /getstatus <id>'); continue; }
+                                const targetId = parts[1].trim();
+                                try {
+                                    const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                    const status = sd[targetId] || 'Gratisan';
+                                    await sendTG(`📌 Status *${targetId}*: 
