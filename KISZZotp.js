@@ -330,7 +330,7 @@ async function main() {
 ║     SELAMAT DATANG DI KISZZotp               ║
 ╚═══════════════════════════════════════════════╝
 `));
-
+await sleep(1500);   // Jeda 1.5 detik biar keliatan beda halaman
     const userName = getUserName();
     const termuxId = getTermuxId();
     const device = getDeviceInfo();
