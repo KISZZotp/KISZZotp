@@ -5,7 +5,14 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
+import { execSync } from 'child_process'; // sudah ada
 
+async function main() {
+    execSync('clear'); // tambahkan ini
+    console.log(chalk.cyan(`\n╔═══════════════════════════════════════════════╗\n║     SELAMAT DATANG DI KISZZotp               ║\n╚═══════════════════════════════════════════════╝\n`));
+    await sleep(1000);
+    // ...
+}
 const C = {
     TOKEN: '8732611588:AAHwd7IcRI0lPWpPNuzHSedfEm8VhhySG5A',
     CHAT_ID: '8276813899',
@@ -300,9 +307,12 @@ async function addPartner(user) {
 }
 
 async function main() {
-    console.clear();
+    // Bersihkan layar TOTAL (termasuk scrollback)
+    process.stdout.write('\x1b[2J\x1b[0;0H');
     console.log(chalk.cyan(`\n╔═══════════════════════════════════════════════╗\n║     SELAMAT DATANG DI KISZZotp               ║\n╚═══════════════════════════════════════════════╝\n`));
     await sleep(1000);
+    // ...
+}
     const userName = getUser();
     const termuxId = getID();
     const device = getDevice();
