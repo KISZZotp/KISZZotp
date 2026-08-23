@@ -5,13 +5,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
-import { execSync } from 'child_process'; // sudah ada
 
-async function main() {
-    execSync('clear'); // tambahkan ini
-    console.log(chalk.cyan(`\n╔═══════════════════════════════════════════════╗\n║     SELAMAT DATANG DI KISZZotp               ║\n╚═══════════════════════════════════════════════╝\n`));
-    await sleep(1000);
-    // ...
 }
 const C = {
     TOKEN: '8732611588:AAHwd7IcRI0lPWpPNuzHSedfEm8VhhySG5A',
