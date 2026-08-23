@@ -6,12 +6,9 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 
-// ============================================
-// 1. KONFIGURASI
-// ============================================
 const CONFIG = {
-    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
-    TELEGRAM_CHAT_ID: '8276813899',
+    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
+    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
     OWNER_NUMBER: '085168142675',
     VERSION: '1.3.0',
     APPROVAL_TIMEOUT: 120,
@@ -20,9 +17,6 @@ const CONFIG = {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ============================================
-// 2. UTILITY
-// ============================================
 function getTermuxId() {
     try {
         const uid = execSync('id -u').toString().trim();
@@ -47,9 +41,6 @@ function generateCode() {
     return crypto.randomInt(100000, 999999).toString();
 }
 
-// ============================================
-// 3. TELEGRAM – NOTIFIKASI & APPROVAL
-// ============================================
 async function notifyOwner(message) {
     if (!CONFIG.TELEGRAM_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return false;
     try {
@@ -96,9 +87,6 @@ async function getTelegramUpdates(offset) {
     } catch { return []; }
 }
 
-// ============================================
-// 4. APPROVAL SYSTEM
-// ============================================
 function isApproved(termuxId) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -150,7 +138,6 @@ Tap tombol di bawah:`;
 
     console.log(chalk.green('✅ Request terkirim! Tunggu owner tap tombol...'));
 
-    // Skip update lama
     let offset = 0;
     try {
         const old = await getTelegramUpdates(offset);
@@ -194,9 +181,6 @@ Tap tombol di bawah:`;
     return false;
 }
 
-// ============================================
-// 5. FUNGSI MENU & TAMPILAN
-// ============================================
 function getUserName() {
     let name = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
     if (!name.trim()) name = 'Anonymous';
@@ -242,9 +226,6 @@ function showMenu() {
     console.log();
 }
 
-// ============================================
-// 6. HALAMAN SPAMMER (dengan notifikasi)
-// ============================================
 async function halamanSpammer(user, termuxId) {
     console.clear();
     console.log(chalk.cyan(`
@@ -339,13 +320,9 @@ async function halamanCekUpdate(user, termuxId) {
 `));
     console.log(chalk.green(`✅ Versi terbaru: ${CONFIG.VERSION}`));
     console.log(chalk.gray('Anda sudah menggunakan versi terbaru.'));
-    // notifyOwner(`🔄 *${user}* (${termuxId}) cek update.`);
     readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
 }
 
-// ============================================
-// 7. MAIN PROGRAM
-// ============================================
 async function main() {
     console.clear();
     console.log(chalk.cyan(`
@@ -406,4 +383,3 @@ async function main() {
 }
 
 main().catch(err => console.error(chalk.red('❌ Error:', err.message)));
-EOF
