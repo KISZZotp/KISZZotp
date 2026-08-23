@@ -114,7 +114,7 @@ function showMenu(isO) {
     console.log(chalk.cyan(`4.`) + ` ❌ Keluar`);
     if (isO) console.log(chalk.cyan(`5.`) + ` 👥 Add Partner (Owner Only)`);
     console.log(chalk.yellow(`─`.repeat(30)));
-}
+                           }
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan(`\n🚀 SPAMMER OTP\n`));
@@ -194,16 +194,6 @@ async function addPartner() {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== COMMAND TELEGRAM UNTUK UBAH STATUS (OWNER) ======
-async function handleTGCommands() {
-    // Ini akan dipanggil di main loop polling untuk mendengar command /setstatus
-    // Tapi karena kita pakai callback, kita tambahkan di dalam requestApproval? 
-    // Lebih mudah: owner bisa kirim /setstatus ke bot, kita tangkap di polling utama.
-    // Karena kita sudah punya polling di requestApproval, kita perlu tambahkan di main loop.
-    // Namun agar sederhana, kita tambahkan fungsi terpisah yang dipanggil di main loop.
-    // Saya tambahkan di main nanti.
-}
-
 // ====== MAIN ======
 async function main() {
     console.clear();
@@ -231,60 +221,71 @@ async function main() {
         await sleep(1000);
     }
 
-    // Loop utama untuk polling command Telegram (owner)
+    // ====== POLLING TELEGRAM COMMAND (OWNER) ======
     let offset = 0;
-
-    while (true) {
-        // Cek update Telegram untuk command /setstatus (owner)
-        if (isOwner) {
-            try {
-                const updates = await getUpd(offset);
-                for (const u of updates) {
-                    offset = u.update_id + 1;
-                    if (u.message && u.message.text) {
-                        const text = u.message.text;
-                        const fromId = u.message.from.id;
-                        if (fromId == C.CHAT_ID) {
-                            if (text.startsWith('/setstatus')) {
-                                const parts = text.split(' ');
-                                if (parts.length < 3) {
-                                    await sendTG('❌ Format: /setstatus <termuxId> <status>');
-                                    continue;
+    (async function pollTelegram() {
+        while (true) {
+            if (isOwner) {
+                try {
+                    const updates = await getUpd(offset);
+                    for (const u of updates) {
+                        offset = u.update_id + 1;
+                        if (u.message && u.message.text) {
+                            const text = u.message.text;
+                            const fromId = u.message.from.id;
+                            if (fromId == C.CHAT_ID) {
+                                if (text.startsWith('/setstatus')) {
+                                    const parts = text.split(' ');
+                                    if (parts.length < 3) {
+                                        await sendTG('❌ Format: /setstatus <termuxId> <status>\nContoh: /setstatus 10192@localhost Gembel');
+                                        continue;
+                                    }
+                                    const targetId = parts[1].trim();
+                                    const status = parts.slice(2).join(' ');
+                                    try {
+                                        let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                        sd[targetId] = status;
+                                        fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
+                                        await sendTG(`✅ Status *${targetId}* berhasil diubah menjadi *${status}*`);
+                                    } catch (e) {
+                                        await sendTG(`❌ Gagal mengubah status: ${e.message}`);
+                                    }
                                 }
-                                const targetId = parts[1].trim();
-                                const status = parts.slice(2).join(' ');
-                                // Simpan status di file status.json
-                                try {
-                                    let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                    sd[targetId] = status;
-                                    fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
-                                    await sendTG(`✅ Status ${targetId} diubah menjadi: ${status}`);
-                                } catch (e) {
-                                    await sendTG(`❌ Gagal: ${e.message}`);
+                                else if (text.startsWith('/getstatus')) {
+                                    const parts = text.split(' ');
+                                    if (parts.length < 2) {
+                                        await sendTG('❌ Format: /getstatus <termuxId>\nContoh: /getstatus 10192@localhost');
+                                        continue;
+                                    }
+                                    const targetId = parts[1].trim();
+                                    try {
+                                        const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                        const status = sd[targetId] || 'Gratisan (belum diatur)';
+                                        await sendTG(`📌 Status *${targetId}*: *${status}*`);
+                                    } catch (e) {
+                                        await sendTG(`❌ Gagal mengambil status: ${e.message}`);
+                                    }
                                 }
-                            }
-                            if (text.startsWith('/getstatus')) {
-                                const parts = text.split(' ');
-                                if (parts.length < 2) {
-                                    await sendTG('❌ Format: /getstatus <termuxId>');
-                                    continue;
+                                else if (text.startsWith('/help')) {
+                                    await sendTG(`📋 *Command tersedia untuk owner:*\n\n` +
+                                                 `/setstatus <termuxId> <status> - Ubah status user\n` +
+                                                 `/getstatus <termuxId> - Lihat status user\n` +
+                                                 `/help - Tampilkan bantuan ini`);
                                 }
-                                const targetId = parts[1].trim();
-                                try {
-                                    const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                    const status = sd[targetId] || 'Gratisan';
-                                    await sendTG(`📌 Status ${targetId}: ${status}`);
-                                } catch (e) {
-                                    await sendTG(`❌ Gagal: ${e.message}`);
+                                else {
+                                    await sendTG(`❌ Command tidak dikenali.\nKetik /help untuk daftar command.`);
                                 }
                             }
                         }
                     }
-                }
-            } catch {}
+                } catch {}
+            }
+            await sleep(2000);
         }
+    })();
 
-        // Tampilan menu
+    // ====== MENU UTAMA ======
+    while (true) {
         const status = getStat(isOwner);
         showHead(userName, status, termuxId, device);
         showMenu(isOwner);
