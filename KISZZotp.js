@@ -98,7 +98,12 @@ function getUser() {
     let n = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
     return n.trim() || 'Anonymous';
 }
-function getStat(isO) { return isO ? chalk.green('★ OWNER') : chalk.yellow('▸ Gratisan'); }
+
+function getStat(isO, id) {
+    if (isO) return chalk.green('★ OWNER');
+    if (isApp(id)) return chalk.green('★ PARTNER');
+    return chalk.yellow('▸ Gratisan');
+}
 
 function showHead(u, s, id, dev) {
     console.clear();
@@ -114,8 +119,7 @@ function showMenu(isO) {
     console.log(chalk.cyan(`4.`) + ` ❌ Keluar`);
     if (isO) console.log(chalk.cyan(`5.`) + ` 👥 Add Partner (Owner Only)`);
     console.log(chalk.yellow(`─`.repeat(30)));
-}
-async function spam(user, id, isO, isP) {
+}async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan(`\n🚀 SPAMMER OTP\n`));
     if (!isO && !isP) {
@@ -220,94 +224,87 @@ async function main() {
         await sleep(1000);
     }
 
-    // POLLING TELEGRAM COMMAND
     let offset = 0;
-    (async function pollTelegram() {
-        while (true) {
-            if (isOwner) {
-                try {
-                    const updates = await getUpd(offset);
-                    for (const u of updates) {
-                        offset = u.update_id + 1;
-                        if (u.message && u.message.text) {
-                            const text = u.message.text;
-                            const fromId = u.message.from.id;
-                            if (fromId == C.CHAT_ID) {
-                                if (text.startsWith('/setstatus')) {
-                                    const parts = text.split(' ');
-                                    if (parts.length < 3) {
-                                        await sendTG('❌ Format: /setstatus <termuxId> <status>');
-                                        continue;
-                                    }
-                                    const targetId = parts[1].trim();
-                                    const status = parts.slice(2).join(' ');
+    setInterval(async () => {
+        if (isOwner) {
+            try {
+                const updates = await getUpd(offset);
+                for (const u of updates) {
+                    offset = u.update_id + 1;
+                    if (u.message && u.message.text) {
+                        const text = u.message.text;
+                        const fromId = u.message.from.id;
+                        if (fromId == C.CHAT_ID) {
+                            if (text.startsWith('/setstatus')) {
+                                const parts = text.split(' ');
+                                if (parts.length < 3) {
+                                    await sendTG('❌ Format: /setstatus <termuxId> <status>');
+                                    continue;
+                                }
+                                const targetId = parts[1].trim();
+                                const status = parts.slice(2).join(' ');
+                                try {
+                                    let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                    sd[targetId] = status;
+                                    fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
+                                    await sendTG(`✅ Status *${targetId}* -> *${status}*`);
+                                } catch (e) {
+                                    await sendTG(`❌ Gagal: ${e.message}`);
+                                }
+                            } else if (text.startsWith('/getstatus')) {
+                                const parts = text.split(' ');
+                                if (parts.length < 2) {
+                                    await sendTG('❌ Format: /getstatus <termuxId>');
+                                    continue;
+                                }
+                                const targetId = parts[1].trim();
+                                try {
+                                    const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                    const status = sd[targetId] || 'Gratisan';
+                                    await sendTG(`📌 Status *${targetId}*: *${status}*`);
+                                } catch (e) {
+                                    await sendTG(`❌ Gagal: ${e.message}`);
+                                }
+                            } else if (text.startsWith('/delpartner')) {
+                                const parts = text.split(' ');
+                                if (parts.length < 2) {
+                                    await sendTG('❌ Format: /delpartner <termuxId>');
+                                    continue;
+                                }
+                                const targetId = parts[1].trim();
+                                if (isApp(targetId)) {
+                                    remApp(targetId);
                                     try {
                                         let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        sd[targetId] = status;
+                                        if (sd[targetId]) delete sd[targetId];
                                         fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
-                                        await sendTG(`✅ Status *${targetId}* -> *${status}*`);
-                                    } catch (e) {
-                                        await sendTG(`❌ Gagal: ${e.message}`);
-                                    }
+                                    } catch {}
+                                    await sendTG(`✅ Akses *${targetId}* dihapus.`);
+                                } else {
+                                    await sendTG(`❌ *${targetId}* tidak ditemukan.`);
                                 }
-                                else if (text.startsWith('/getstatus')) {
-                                    const parts = text.split(' ');
-                                    if (parts.length < 2) {
-                                        await sendTG('❌ Format: /getstatus <termuxId>');
-                                        continue;
-                                    }
-                                    const targetId = parts[1].trim();
-                                    try {
-                                        const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        const status = sd[targetId] || 'Gratisan';
-                                        await sendTG(`📌 Status *${targetId}*: *${status}*`);
-                                    } catch (e) {
-                                        await sendTG(`❌ Gagal: ${e.message}`);
-                                    }
-                                }
-                                else if (text.startsWith('/delpartner')) {
-                                    const parts = text.split(' ');
-                                    if (parts.length < 2) {
-                                        await sendTG('❌ Format: /delpartner <termuxId>');
-                                        continue;
-                                    }
-                                    const targetId = parts[1].trim();
-                                    if (isApp(targetId)) {
-                                        remApp(targetId);
-                                        try {
-                                            let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                            if (sd[targetId]) delete sd[targetId];
-                                            fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
-                                        } catch {}
-                                        await sendTG(`✅ Akses *${targetId}* dihapus.`);
-                                    } else {
-                                        await sendTG(`❌ *${targetId}* tidak ditemukan.`);
-                                    }
-                                }
-                                else if (text.startsWith('/help')) {
-                                    await sendTG(`📋 *Command Owner:*\n` +
-                                                 `/setstatus <id> <status>\n` +
-                                                 `/getstatus <id>\n` +
-                                                 `/delpartner <id>\n` +
-                                                 `/help`);
-                                }
-                                else {
-                                    await sendTG(`❌ Command tidak dikenali. Ketik /help`);
-                                }
+                            } else if (text.startsWith('/help')) {
+                                await sendTG(`📋 *Command Owner:*\n` +
+                                             `/setstatus <id> <status>\n` +
+                                             `/getstatus <id>\n` +
+                                             `/delpartner <id>\n` +
+                                             `/help`);
+                            } else {
+                                await sendTG(`❌ Command tidak dikenali. Ketik /help`);
                             }
                         }
                     }
-                } catch {}
-            }
-            await sleep(2000);
+                }
+            } catch {}
         }
-    })();
+    }, 2000);
 
     while (true) {
-        const status = getStat(isOwner);
+        const status = getStat(isOwner, termuxId);
         showHead(userName, status, termuxId, device);
         showMenu(isOwner);
-        const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-5]: '));
+        const maxMenu = isOwner ? 5 : 4;
+        const choice = readlineSync.question(chalk.cyan(`\nPilih menu [1-${maxMenu}]: `));
         switch (choice) {
             case '1': await spam(userName, termuxId, isOwner, isPartner); break;
             case '2': laporBug(); break;
