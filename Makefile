@@ -1,0 +1,2 @@
+run:
+	node KISZZotp.js
