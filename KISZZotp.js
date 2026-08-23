@@ -7,8 +7,8 @@ import os from 'os';
 import crypto from 'crypto';
 
 const C = {
-    TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
-    CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
+    TOKEN: '8732611588:AAEx3e8yuZa9r-mMeRxQZ_i2kt361ZXZl_w',
+    CHAT_ID: '8276813899',
     OWNER: '085168142675',
     VER: '2.4.0',
     TIMEOUT: 120,
