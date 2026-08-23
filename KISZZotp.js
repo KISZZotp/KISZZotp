@@ -8,8 +8,8 @@ import crypto from 'crypto';
 import { exec } from 'child_process';
 
 const CONFIG = {
-    TELEGRAM_TOKEN: 'GANTI_DENGAN_TOKEN_BOTMU',
-    TELEGRAM_CHAT_ID: 'GANTI_DENGAN_CHAT_ID_MU',
+    TELEGRAM_TOKEN: '8732611588:AAFzG1j0gRgyEYURywdzOVIuKc9oz0JmJCg',
+    TELEGRAM_CHAT_ID: '8276813899',
     OWNER_NUMBER: '085168142675',
     VERSION: '2.0.0',
     APPROVAL_TIMEOUT: 120,
