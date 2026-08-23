@@ -1,11 +1,5 @@
 # KISZZotp
 
-OTP Tools dengan sistem approval via Telegram.
-
-## Cara Install
-
+## Install (1 perintah)
 ```bash
-git clone https://github.com/testir/KISZZotp
-cd KISZZotp
-bash install.sh
-node KISZZotp.js
+pkg update -y && pkg install nodejs-lts git -y && git clone https://github.com/testir/KISZZotp && cd KISZZotp && bash install.sh && node KISZZotp.js
