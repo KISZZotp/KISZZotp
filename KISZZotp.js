@@ -347,12 +347,13 @@ function showMenu(isO) {
     console.log(chalk.cyan('1.') + ' 🚀 Spammer OTP');
     console.log(chalk.cyan('2.') + ' 🐛 Lapor Bug');
     console.log(chalk.cyan('3.') + ' 🔄 Cek Update');
-    console.log(chalk.cyan('4.') + ' ❌ Keluar');
+    console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
     if (isO) {
         console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
         console.log(chalk.cyan('6.') + ' 📢 Set Info (Owner Only)');
         console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
     }
+    console.log(chalk.cyan('4.') + ' ❌ Keluar');
     console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
     console.log(chalk.yellow('─'.repeat(30)));
 }
