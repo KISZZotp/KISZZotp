@@ -354,7 +354,6 @@ function showMenu(isO) {
         console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
     }
     console.log(chalk.cyan('4.') + ' ❌ Keluar');
-    console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
