@@ -10,7 +10,7 @@ const C = {
     TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
     CHAT_ID: '8276813899',
     OWNER: '085168142675',
-    VER: '2.6.0',
+    VER: '2.5.0',
     TIMEOUT: 120,
     POLL: 1,
 };
@@ -73,7 +73,7 @@ function logActivity(user, action, detail) {
     } catch {}
 }
 
-// ====== INFO & CHANNEL ======
+// ====== INFO & CHANNEL (hanya di Termux) ======
 function getInfo() {
     try {
         if (!fs.existsSync('info.json')) return null;
@@ -252,51 +252,7 @@ async function reqApp(user, id, dev) {
     console.log(chalk.red('\n⏰ Waktu habis!'));
     return false;
 }
-
-// ====== BROADCAST & DASHBOARD ======
-async function broadcastMessage(message) {
-    try {
-        const users = getApprovedList();
-        if (users.length === 0) {
-            await sendTG('📢 Tidak ada user yang terdaftar untuk broadcast.', null);
-            return;
-        }
-        await sendTG('📢 *BROADCAST DARI OWNER:*\n' + message, null);
-        try {
-            let bd = fs.existsSync('broadcast.json') ? JSON.parse(fs.readFileSync('broadcast.json')) : [];
-            bd.push({ message: message, timestamp: new Date().toISOString() });
-            fs.writeFileSync('broadcast.json', JSON.stringify(bd, null, 2));
-        } catch {}
-        await sendTG('✅ Broadcast berhasil dikirim ke ' + users.length + ' user.', null);
-        logActivity('OWNER', 'BROADCAST', message);
-    } catch (e) {
-        await sendTG('❌ Gagal broadcast: ' + e.message, null);
-    }
-}
-
-async function dashboard() {
-    try {
-        const users = getApprovedList();
-        const total = users.length;
-        let statusCount = {};
-        try {
-            const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-            for (const id of users) {
-                const s = sd[id] || 'Gratisan';
-                statusCount[s] = (statusCount[s] || 0) + 1;
-            }
-        } catch {}
-        const keys = Object.keys(statusCount);
-        let statusList = '';
-        for (let i = 0; i < keys.length; i++) {
-            statusList += '- ' + keys[i] + ': ' + statusCount[keys[i]] + '\n';
-        }
-        const msg = '📊 *DASHBOARD*\n\n👥 Total User: ' + total + '\n\n📌 Status:\n' + (statusList || 'Belum ada status custom');
-        await sendTG(msg, null);
-    } catch (e) {
-        await sendTG('❌ Gagal dashboard: ' + e.message, null);
-    }
-}
+EOF
 
 // ====== LOGIN FUNCTION ======
 function getLoginUser() {
@@ -376,8 +332,11 @@ function showMenu(isO) {
     console.log(chalk.cyan('2.') + ' 🐛 Lapor Bug');
     console.log(chalk.cyan('3.') + ' 🔄 Cek Update');
     console.log(chalk.cyan('4.') + ' ❌ Keluar');
-    if (isO) console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
-    console.log(chalk.cyan('6.') + ' 📢 Join Saluran KISZZ');
+    if (isO) {
+        console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
+        console.log(chalk.cyan('6.') + ' 📢 Set Saluran KISZZ (Owner Only)');
+        console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
+    }
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
@@ -464,7 +423,8 @@ function cekUpdate(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-async function addPartner(user) {
+// ====== FITUR OWNER DI TERMUX ======
+async function addPartnerMenu(user) {
     console.clear();
     console.log(chalk.green('\n👥 ADD PARTNER\n'));
     const tid = readlineSync.question(chalk.cyan('📌 ID user (contoh: 10192@localhost): '));
@@ -483,6 +443,40 @@ async function addPartner(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
+async function deletePartnerMenu(user) {
+    console.clear();
+    console.log(chalk.red('\n❌ DELETE PARTNER\n'));
+    const tid = readlineSync.question(chalk.cyan('📌 ID user (contoh: 10192@localhost): '));
+    if (!tid.trim()) {
+        console.log(chalk.red('❌ Tidak boleh kosong!'));
+        readlineSync.question(chalk.gray('\nTekan Enter...'));
+        return;
+    }
+    if (isApp(tid.trim())) {
+        remApp(tid.trim());
+        console.log(chalk.green('✅ ' + tid + ' telah dihapus dari daftar partner.'));
+        logActivity(user, 'DELETE_PARTNER', tid);
+    } else {
+        console.log(chalk.yellow('⚠️ ' + tid + ' tidak ditemukan.'));
+    }
+    readlineSync.question(chalk.gray('\nTekan Enter...'));
+}
+
+async function setSaluranMenu(user) {
+    console.clear();
+    console.log(chalk.cyan('\n📢 SET SALURAN KISZZ\n'));
+    const link = readlineSync.question(chalk.white('🔗 Masukkan link saluran (contoh: https://t.me/xxx): '));
+    if (!link.trim()) {
+        console.log(chalk.red('❌ Tidak boleh kosong!'));
+        readlineSync.question(chalk.gray('\nTekan Enter...'));
+        return;
+    }
+    setChannel(link.trim());
+    console.log(chalk.green('✅ Saluran berhasil disimpan: ' + link));
+    logActivity(user, 'SET_CHANNEL', link);
+    readlineSync.question(chalk.gray('\nTekan Enter...'));
+}
+
 // ====== MAIN ======
 async function main() {
     console.clear();
@@ -491,25 +485,11 @@ async function main() {
     console.log(chalk.cyan('╚═══════════════════════════════════════════════╝\n'));
     await sleep(1000);
 
-    // Login
     const userName = getLoginUser();
     const termuxId = getID();
     const device = getDevice();
     const isOwner = userName.toLowerCase() === 'kiszzaja';
     const isPartner = isApp(termuxId);
-
-    // Tampilkan broadcast terbaru
-    try {
-        if (fs.existsSync('broadcast.json')) {
-            const bd = JSON.parse(fs.readFileSync('broadcast.json'));
-            if (bd.length > 0) {
-                const last = bd[bd.length - 1];
-                console.log(chalk.yellow('\n📢 *PENGUMUMAN DARI OWNER:*\n' + last.message));
-                console.log(chalk.gray('   (' + new Date(last.timestamp).toLocaleString('id-ID') + ')'));
-                await sleep(2000);
-            }
-        }
-    } catch {}
 
     // Approval (hanya untuk user biasa yang belum approve)
     if (!isOwner) {
@@ -528,3 +508,106 @@ async function main() {
         console.log(chalk.green('\n👑 Owner mode!'));
         await sleep(1000);
     }
+
+    // ====== POLLING TELEGRAM (hanya /setstatus, /getstatus, /help) ======
+    let offset = 0;
+    (async function pollTelegram() {
+        while (true) {
+            if (isOwner) {
+                try {
+                    const updates = await getUpd(offset);
+                    for (const u of updates) {
+                        offset = u.update_id + 1;
+                        if (u.message && u.message.text) {
+                            const text = u.message.text;
+                            const fromId = u.message.from.id;
+                            if (fromId == C.CHAT_ID) {
+                                if (text.startsWith('/setstatus')) {
+                                    const parts = text.split(' ');
+                                    if (parts.length < 3) {
+                                        await sendTG('❌ Format: /setstatus <id> <status>', null);
+                                        continue;
+                                    }
+                                    const targetId = parts[1].trim();
+                                    const status = parts.slice(2).join(' ');
+                                    try {
+                                        let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                        sd[targetId] = status;
+                                        fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
+                                        await sendTG('✅ Status *' + targetId + '* -> *' + status + '*', null);
+                                        logActivity('OWNER', 'SET_STATUS', targetId + ' -> ' + status);
+                                    } catch (e) {
+                                        await sendTG('❌ Gagal: ' + e.message, null);
+                                    }
+                                } else if (text.startsWith('/getstatus')) {
+                                    const parts = text.split(' ');
+                                    if (parts.length < 2) {
+                                        await sendTG('❌ Format: /getstatus <id>', null);
+                                        continue;
+                                    }
+                                    const targetId = parts[1].trim();
+                                    try {
+                                        const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
+                                        const status = sd[targetId] || 'Gratisan';
+                                        await sendTG('📌 Status *' + targetId + '*: *' + status + '*', null);
+                                    } catch (e) {
+                                        await sendTG('❌ Gagal: ' + e.message, null);
+                                    }
+                                } else if (text.startsWith('/help')) {
+                                    await sendTG('📋 *Command Owner:*\n/setstatus <id> <status>\n/getstatus <id>\n/help', null);
+                                } else {
+                                    await sendTG('❌ Command tidak dikenali. Ketik /help', null);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+            await sleep(2000);
+        }
+    })();
+
+    // ====== MENU UTAMA ======
+    while (true) {
+        const status = getStat(isOwner, termuxId);
+        showHead(userName, status, termuxId, device);
+        showMenu(isOwner);
+        const maxMenu = isOwner ? 7 : 4;
+        const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
+        switch (choice) {
+            case '1':
+                await spam(userName, termuxId, isOwner, isPartner);
+                break;
+            case '2':
+                laporBug(userName);
+                break;
+            case '3':
+                cekUpdate(userName);
+                break;
+            case '4':
+                console.log(chalk.green('\n👋 Sampai jumpa!'));
+                logoutUser();
+                logActivity(userName, 'LOGOUT', '');
+                process.exit(0);
+            case '5':
+                if (isOwner) await addPartnerMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '6':
+                if (isOwner) await setSaluranMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '7':
+                if (isOwner) await deletePartnerMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            default:
+                console.log(chalk.red('❌ Salah!'));
+                await sleep(1000);
+        }
+    }
+}
+
+main().catch(function(err) {
+    console.error(chalk.red('❌ Error:', err.message));
+});
