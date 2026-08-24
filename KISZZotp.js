@@ -326,6 +326,7 @@ function showMenu(isO) {
         console.log(chalk.cyan('6.') + ' 📢 Set Saluran KISZZ (Owner Only)');
         console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
     }
+    console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
@@ -395,9 +396,16 @@ function laporBug(user) {
     console.clear();
     console.log(chalk.yellow('\n🐛 LAPOR BUG\n'));
     console.log(chalk.white('📱 Owner: ' + C.OWNER));
-    const c = readlineSync.question(chalk.cyan('Buka WhatsApp? (y/n): '));
+    console.log(chalk.gray('Kirim pesan ke WhatsApp dengan format:\n- Nama: [Nama Anda]\n- Bug: [Deskripsi bug]\n- Screenshot: [Opsional]\n'));
+    const c = readlineSync.question(chalk.cyan('Buka WhatsApp sekarang? (y/n): '));
     if (c.toLowerCase() === 'y') {
-        execSync('termux-open-url "https://wa.me/' + C.OWNER + '?text=Halo%20KISZZ%2C%20saya%20' + encodeURIComponent(user) + '%20ingin%20lapor%20bug."');
+        try {
+            const url = 'https://wa.me/' + C.OWNER + '?text=Halo%20KISZZ%2C%20saya%20' + encodeURIComponent(user) + '%20ingin%20lapor%20bug.';
+            execSync('termux-open-url "' + url + '"');
+            console.log(chalk.green('✅ Membuka WhatsApp...'));
+        } catch (e) {
+            console.log(chalk.red('❌ Gagal membuka WhatsApp. Silakan hubungi manual ke nomor: ' + C.OWNER));
+        }
         logActivity(user, 'LAPOR_BUG', '');
     }
     readlineSync.question(chalk.gray('\nTekan Enter...'));
@@ -555,7 +563,7 @@ async function main() {
         const status = getStat(isOwner, termuxId);
         showHead(userName, status, termuxId, device);
         showMenu(isOwner);
-        const maxMenu = isOwner ? 7 : 4;
+        const maxMenu = isOwner ? 7 : 8;
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
         switch (choice) {
             case '1':
@@ -584,6 +592,20 @@ async function main() {
                 if (isOwner) await deletePartnerMenu(userName);
                 else console.log(chalk.red('❌ Menu owner!'));
                 break;
+            case '8':
+    const channelLink = getChannel();
+    if (channelLink) {
+        console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
+        console.log(chalk.green('✅ Membuka saluran...'));
+        try {
+            execSync('termux-open-url "' + channelLink + '"');
+        } catch (e) {
+            console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));        }
+    } else {
+        console.log(chalk.yellow('\n📢 Belum ada saluran yang diatur oleh owner.'));
+    }
+    readlineSync.question(chalk.gray('\nTekan Enter...'));
+    break;
             default:
                 console.log(chalk.red('❌ Salah!'));
                 await sleep(1000);
