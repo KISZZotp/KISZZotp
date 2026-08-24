@@ -17,7 +17,6 @@ const C = {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ====== LOGIN SYSTEM ======
 function loadUsers() {
     try {
         if (!fs.existsSync('users.json')) return {};
@@ -63,7 +62,6 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
-// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -73,7 +71,6 @@ function logActivity(user, action, detail) {
     } catch {}
 }
 
-// ====== INFO & CHANNEL (hanya di Termux) ======
 function getInfo() {
     try {
         if (!fs.existsSync('info.json')) return null;
@@ -108,7 +105,6 @@ function delChannel() {
     try { if (fs.existsSync('channel.json')) fs.unlinkSync('channel.json'); return true; } catch { return false; }
 }
 
-// ====== UTILITY ======
 function getID() {
     try { return execSync('id -u').toString().trim() + '@' + os.hostname(); } catch { return 'unknown'; }
 }
@@ -122,7 +118,6 @@ function getDevice() {
 function getTime() { return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }); }
 function genCode() { return crypto.randomInt(100000, 999999).toString(); }
 
-// ====== TELEGRAM ======
 async function sendTG(text, kb) {
     if (!kb) kb = null;
     try {
@@ -148,7 +143,6 @@ async function getUpd(off) {
     } catch { return []; }
 }
 
-// ====== APPROVAL ======
 function isApp(id) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -178,7 +172,6 @@ function getApprovedList() {
     } catch { return []; }
 }
 
-// ====== LIMIT ======
 function getLimit(id) {
     try {
         if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
@@ -200,7 +193,6 @@ function incLimit(id) {
     } catch { return 0; }
 }
 
-// ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
     const kb = [[
@@ -252,9 +244,7 @@ async function reqApp(user, id, dev) {
     console.log(chalk.red('\n⏰ Waktu habis!'));
     return false;
 }
-EOF
 
-// ====== LOGIN FUNCTION ======
 function getLoginUser() {
     const current = getCurrentUser();
     if (current) {
@@ -294,7 +284,6 @@ function getLoginUser() {
     }
 }
 
-// ====== STATUS & UI ======
 function getStat(isO, id) {
     if (isO) return chalk.green('★ OWNER');
     if (isApp(id)) return chalk.green('★ PARTNER');
@@ -340,7 +329,6 @@ function showMenu(isO) {
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
-// ====== SPAMMER ======
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan('\n🚀 SPAMMER OTP\n'));
@@ -423,7 +411,6 @@ function cekUpdate(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== FITUR OWNER DI TERMUX ======
 async function addPartnerMenu(user) {
     console.clear();
     console.log(chalk.green('\n👥 ADD PARTNER\n'));
@@ -477,7 +464,6 @@ async function setSaluranMenu(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== MAIN ======
 async function main() {
     console.clear();
     console.log(chalk.cyan('\n╔═══════════════════════════════════════════════╗'));
@@ -491,7 +477,6 @@ async function main() {
     const isOwner = userName.toLowerCase() === 'kiszzaja';
     const isPartner = isApp(termuxId);
 
-    // Approval (hanya untuk user biasa yang belum approve)
     if (!isOwner) {
         if (!isApp(termuxId)) {
             console.log(chalk.yellow('\n🔐 Memerlukan approval owner.'));
@@ -509,7 +494,6 @@ async function main() {
         await sleep(1000);
     }
 
-    // ====== POLLING TELEGRAM (hanya /setstatus, /getstatus, /help) ======
     let offset = 0;
     (async function pollTelegram() {
         while (true) {
@@ -567,7 +551,6 @@ async function main() {
         }
     })();
 
-    // ====== MENU UTAMA ======
     while (true) {
         const status = getStat(isOwner, termuxId);
         showHead(userName, status, termuxId, device);
