@@ -10,13 +10,37 @@ const C = {
     TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
     CHAT_ID: '8276813899',
     OWNER: '6283147801427',
-    VER: '2.5.0',
+    VER: '2.6.0',
     TIMEOUT: 120,
     POLL: 1,
 };
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// ====== AUTO UPDATE ======
+function checkUpdate() {
+    try {
+        // Cek apakah ini repo git
+        if (!fs.existsSync('.git')) return;
+        console.log(chalk.gray('🔄 Cek update...'));
+        // Fetch update dari remote
+        execSync('git fetch', { stdio: 'ignore' });
+        // Cek apakah ada perubahan
+        const status = execSync('git status -uno', { encoding: 'utf8' });
+        if (status.includes('Your branch is behind')) {
+            console.log(chalk.yellow('📢 Ada update baru! Mengunduh...'));
+            execSync('git pull', { stdio: 'inherit' });
+            console.log(chalk.green('✅ Update berhasil! Restart script...'));
+            process.exit(0);
+        }
+        console.log(chalk.green('✅ Sudah versi terbaru.'));
+    } catch (e) {
+        // Abaikan error (misal bukan repo git)
+        console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...'));
+    }
+}
+
+// ====== LOGIN SYSTEM ======
 function loadUsers() {
     try {
         if (!fs.existsSync('users.json')) return {};
@@ -62,6 +86,7 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
+// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -71,6 +96,20 @@ function logActivity(user, action, detail) {
     } catch {}
 }
 
+// ====== CHANNEL (HARDCODE) ======
+function getChannel() {
+    // Langsung return link saluran tanpa perlu file channel.json
+    return 'https://whatsapp.com/channel/0029Vb9WjJx5q08iyvQuSA3Q';
+}
+function setChannel(link) {
+    // Tidak digunakan lagi, tapi tetap ada untuk kompatibilitas
+    return true;
+}
+function delChannel() {
+    return true;
+}
+
+// ====== INFO ======
 function getInfo() {
     try {
         if (!fs.existsSync('info.json')) return null;
@@ -88,23 +127,7 @@ function delInfo() {
     try { if (fs.existsSync('info.json')) fs.unlinkSync('info.json'); return true; } catch { return false; }
 }
 
-function getChannel() {
-    try {
-        if (!fs.existsSync('channel.json')) return null;
-        const data = JSON.parse(fs.readFileSync('channel.json'));
-        return data.link || null;
-    } catch { return null; }
-}
-function setChannel(link) {
-    try {
-        fs.writeFileSync('channel.json', JSON.stringify({ link: link.trim(), updated: new Date().toISOString() }, null, 2));
-        return true;
-    } catch { return false; }
-}
-function delChannel() {
-    try { if (fs.existsSync('channel.json')) fs.unlinkSync('channel.json'); return true; } catch { return false; }
-}
-
+// ====== UTILITY ======
 function getID() {
     try { return execSync('id -u').toString().trim() + '@' + os.hostname(); } catch { return 'unknown'; }
 }
@@ -118,6 +141,7 @@ function getDevice() {
 function getTime() { return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }); }
 function genCode() { return crypto.randomInt(100000, 999999).toString(); }
 
+// ====== TELEGRAM ======
 async function sendTG(text, kb) {
     if (!kb) kb = null;
     try {
@@ -143,6 +167,7 @@ async function getUpd(off) {
     } catch { return []; }
 }
 
+// ====== APPROVAL ======
 function isApp(id) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -172,6 +197,7 @@ function getApprovedList() {
     } catch { return []; }
 }
 
+// ====== LIMIT ======
 function getLimit(id) {
     try {
         if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
@@ -191,8 +217,9 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-}
+    }
 
+// ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
     const kb = [[
@@ -323,7 +350,7 @@ function showMenu(isO) {
     console.log(chalk.cyan('4.') + ' ❌ Keluar');
     if (isO) {
         console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
-        console.log(chalk.cyan('6.') + ' 📢 Set Saluran KISZZ (Owner Only)');
+        console.log(chalk.cyan('6.') + ' 📢 Set Info (Owner Only)');
         console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
     }
     console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
@@ -419,6 +446,7 @@ function cekUpdate(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
+// ====== FITUR OWNER DI TERMUX ======
 async function addPartnerMenu(user) {
     console.clear();
     console.log(chalk.green('\n👥 ADD PARTNER\n'));
@@ -457,22 +485,26 @@ async function deletePartnerMenu(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-async function setSaluranMenu(user) {
+async function setInfoMenu(user) {
     console.clear();
-    console.log(chalk.cyan('\n📢 SET SALURAN KISZZ\n'));
-    const link = readlineSync.question(chalk.white('🔗 Masukkan link saluran (contoh: https://t.me/xxx): '));
-    if (!link.trim()) {
+    console.log(chalk.cyan('\n📢 SET INFO\n'));
+    const info = readlineSync.question(chalk.white('📝 Masukkan info baru: '));
+    if (!info.trim()) {
         console.log(chalk.red('❌ Tidak boleh kosong!'));
         readlineSync.question(chalk.gray('\nTekan Enter...'));
         return;
     }
-    setChannel(link.trim());
-    console.log(chalk.green('✅ Saluran berhasil disimpan: ' + link));
-    logActivity(user, 'SET_CHANNEL', link);
+    setInfo(info.trim());
+    console.log(chalk.green('✅ Info berhasil disimpan: ' + info));
+    logActivity(user, 'SET_INFO', info);
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
+// ====== MAIN ======
 async function main() {
+    // Auto update
+    checkUpdate();
+
     console.clear();
     console.log(chalk.cyan('\n╔═══════════════════════════════════════════════╗'));
     console.log(chalk.cyan('║     SELAMAT DATANG DI KISZZotp               ║'));
@@ -563,7 +595,7 @@ async function main() {
         const status = getStat(isOwner, termuxId);
         showHead(userName, status, termuxId, device);
         showMenu(isOwner);
-        const maxMenu = isOwner ? 7 : 8;
+        const maxMenu = isOwner ? 8 : 8;
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
         switch (choice) {
             case '1':
@@ -585,7 +617,7 @@ async function main() {
                 else console.log(chalk.red('❌ Menu owner!'));
                 break;
             case '6':
-                if (isOwner) await setSaluranMenu(userName);
+                if (isOwner) await setInfoMenu(userName);
                 else console.log(chalk.red('❌ Menu owner!'));
                 break;
             case '7':
@@ -593,19 +625,16 @@ async function main() {
                 else console.log(chalk.red('❌ Menu owner!'));
                 break;
             case '8':
-    const channelLink = getChannel();
-    if (channelLink) {
-        console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
-        console.log(chalk.green('✅ Membuka saluran...'));
-        try {
-            execSync('termux-open-url "' + channelLink + '"');
-        } catch (e) {
-            console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));        }
-    } else {
-        console.log(chalk.yellow('\n📢 Belum ada saluran yang diatur oleh owner.'));
-    }
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-    break;
+                const channelLink = getChannel();
+                console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
+                console.log(chalk.green('✅ Membuka saluran...'));
+                try {
+                    execSync('termux-open-url "' + channelLink + '"');
+                } catch (e) {
+                    console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));
+                }
+                readlineSync.question(chalk.gray('\nTekan Enter...'));
+                break;
             default:
                 console.log(chalk.red('❌ Salah!'));
                 await sleep(1000);
