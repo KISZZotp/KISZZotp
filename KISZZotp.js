@@ -607,11 +607,6 @@ async function main() {
             case '3':
                 cekUpdate(userName);
                 break;
-            case '4':
-                console.log(chalk.green('\n👋 Sampai jumpa!'));
-                logoutUser();
-                logActivity(userName, 'LOGOUT', '');
-                process.exit(0);
             case '5':
                 if (isOwner) await addPartnerMenu(userName);
                 else console.log(chalk.red('❌ Menu owner!'));
@@ -635,6 +630,12 @@ async function main() {
                 }
                 readlineSync.question(chalk.gray('\nTekan Enter...'));
                 break;
+             case '0':
+                break;
+                console.log(chalk.green('\n👋 Sampai jumpa!'));
+                logoutUser();
+                logActivity(userName, 'LOGOUT', '');
+                process.exit(0);
             default:
                 console.log(chalk.red('❌ Salah!'));
                 await sleep(1000);
