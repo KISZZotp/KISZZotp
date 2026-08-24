@@ -9,7 +9,7 @@ import crypto from 'crypto';
 const C = {
     TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
     CHAT_ID: '8276813899',
-    OWNER: '625168142675',
+    OWNER: '6283147801427',
     VER: '2.5.0',
     TIMEOUT: 120,
     POLL: 1,
