@@ -89,7 +89,7 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
-// ====== LOG ACTIVITY (local) ======
+// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -324,28 +324,63 @@ function getTotalUsers() {
     } catch { return 0; }
 }
 
-// ====== HEADER DESIGN SESUAI FOTO ======
+// ====== HEADER KEREN (dengan SPAMMER OTP) ======
 function showHeader(u, s, id, dev) {
     console.clear();
-    // Baris pertama: REQUEST NEWOTP OTP
-    console.log(chalk.cyan('╔═══════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.yellow('NEWOTP') + chalk.cyan('    ') + chalk.magenta('OTP') + chalk.cyan('       ║'));
-    // Baris kedua: REQUEST SENDING SPAMMER
-    console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.cyan('SENDING') + chalk.cyan('   ') + chalk.red('SPAMMER') + chalk.cyan('   ║'));
-    // Baris ketiga: OFFSET (kosong) dan OFF
-    console.log(chalk.cyan('║              ') + chalk.red('OFF') + chalk.cyan('                  ║'));
-    // Baris keempat: BYkiszzaja (tanpa spasi)
-    console.log(chalk.cyan('║         ') + chalk.white('BYkiszzaja') + chalk.cyan('            ║'));
-    console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
-    console.log(chalk.cyan('║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
-    console.log(chalk.cyan('║ ') + chalk.bold('📊 Status') + ': ' + s);
-    console.log(chalk.cyan('║ ') + chalk.bold('🆔 ID    ') + ': ' + chalk.blue(id));
-    console.log(chalk.cyan('║ ') + chalk.bold('📱 Device') + ': ' + chalk.magenta(dev));
-    console.log(chalk.cyan('║ ') + chalk.bold('⏰ Waktu ') + ': ' + chalk.gray(getTime()));
-    console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
+
+    const RED = '\x1b[1;31m';
+    const WHITE = '\x1b[1;37m';
+    const CYAN = '\x1b[1;36m';
+    const RESET = '\x1b[0m';
+
+    console.log(RED);
+    console.log('╔══════════════════════════════════════════════════════════╗');
+    console.log('║                                                          ║');
+    console.log('║                 ███████╗██████╗                          ║');
+    console.log('║                 ██╔════╝██╔══██╗                         ║');
+    console.log('║                 ███████╗██████╔╝                         ║');
+    console.log('║                 ╚════██║██╔═══╝                          ║');
+    console.log('║                 ███████║██║                              ║');
+    console.log('║                 ╚══════╝╚═╝                              ║');
+    console.log('║                                                          ║');
+    console.log('║                     ██████╗ ████████╗██████╗             ║');
+    console.log('║                    ██╔═══██╗╚══██╔══╝██╔══██╗            ║');
+    console.log('║                    ██║   ██║   ██║   ██████╔╝            ║');
+    console.log('║                    ██║   ██║   ██║   ██╔═══╝             ║');
+    console.log('║                    ╚██████╔╝   ██║   ██║                 ║');
+    console.log('║                     ╚═════╝    ╚═╝   ╚═╝                 ║');
+    console.log('║                                                          ║');
+    console.log(`║                    ${WHITE}BY kiszzaja${RED}                         ║`);
+    console.log('║                                                          ║');
+    console.log('║                    ███████╗██████╗  █████╗ ███╗   ███╗   ║');
+    console.log('║                    ██╔════╝██╔══██╗██╔══██╗████╗ ████║   ║');
+    console.log('║                    ███████╗██████╔╝███████║██╔████╔██║   ║');
+    console.log('║                    ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║   ║');
+    console.log('║                    ███████║██║     ██║  ██║██║ ╚═╝ ██║   ║');
+    console.log('║                    ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝   ║');
+    console.log('║                                                          ║');
+    console.log('║                     ██████╗ ████████╗██████╗             ║');
+    console.log('║                    ██╔═══██╗╚══██╔══╝██╔══██╗            ║');
+    console.log('║                    ██║   ██║   ██║   ██████╔╝            ║');
+    console.log('║                    ██║   ██║   ██║   ██╔═══╝             ║');
+    console.log('║                    ╚██████╔╝   ██║   ██║                 ║');
+    console.log('║                     ╚═════╝    ╚═╝   ╚═╝                 ║');
+    console.log('║                                                          ║');
+    console.log(`║         ${WHITE}KISZZotp v${C.VER}${RED}                           ║`);
+    console.log('║                                                          ║');
+    console.log('╠══════════════════════════════════════════════════════════╣');
+    console.log(RESET);
+
+    console.log(CYAN + '║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
+    console.log(CYAN + '║ ') + chalk.bold('📊 Status') + ': ' + s);
+    console.log(CYAN + '║ ') + chalk.bold('🆔 ID    ') + ': ' + chalk.blue(id));
+    console.log(CYAN + '║ ') + chalk.bold('📱 Device') + ': ' + chalk.magenta(dev));
+    console.log(CYAN + '║ ') + chalk.bold('⏰ Waktu ') + ': ' + chalk.gray(getTime()));
+    console.log(CYAN + '╠══════════════════════════════════════════════════════════╣'));
     const totalUser = getTotalUsers();
-    console.log(chalk.cyan('║ ') + chalk.bold('👥 User   ') + ': ' + chalk.yellow(totalUser));
-    console.log(chalk.cyan('╚═══════════════════════════════════════════════╝'));
+    console.log(CYAN + '║ ') + chalk.bold('👥 Total User') + ': ' + chalk.yellow(totalUser));
+    console.log(CYAN + '╚══════════════════════════════════════════════════════════╝'));
+    console.log(RESET);
     console.log('');
     showInfoBox();
 }
@@ -377,7 +412,7 @@ function showMenu(isO) {
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
-// ====== SPAMMER ======
+// ====== SPAMMER OTP ======
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan('🚀 SPAMMER OTP\n'));
@@ -600,52 +635,4 @@ async function main() {
                                     const targetId = parts[1].trim();
                                     try {
                                         const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        const status = sd[targetId] || 'Gratisan';
-                                        await sendTG('📌 Status *' + targetId + '*: *' + status + '*', null);
-                                    } catch (e) {
-                                        await sendTG('❌ Gagal: ' + e.message, null);
-                                    }
-                                } else if (text.startsWith('/help')) {
-                                    await sendTG('📋 *Command Owner:*\n/setstatus <id> <status>\n/getstatus <id>\n/help', null);
-                                } else {
-                                    await sendTG('❌ Command tidak dikenali. Ketik /help', null);
-                                }
-                            }
-                        }
-                    }
-                } catch (e) {}
-            }
-            await sleep(2000);
-        }
-    })();
-
-    while (true) {
-        const status = getStat(isOwner, termuxId);
-        showHeader(userName, status, termuxId, device);
-        showMenu(isOwner);
-        const maxMenu = isOwner ? 8 : 8;
-        const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
-        switch (choice) {
-            case '1':
-                await spam(userName, termuxId, isOwner, isPartner);
-                break;
-            case '2':
-                await laporBug(userName);
-                break;
-            case '3':
-                await cekUpdate(userName);
-                break;
-            case '4':
-                const channelLink = getChannel();
-                console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
-                console.log(chalk.green('✅ Membuka saluran...'));
-                try {
-                    execSync('termux-open-url "' + channelLink + '"');
-                } catch (e) {
-                    console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));
-                }
-                readlineSync.question(chalk.gray('\nTekan Enter...'));
-                break;
-            case '5':
-                if (isOwner) await addPartnerMenu(userName);
-        
+       
