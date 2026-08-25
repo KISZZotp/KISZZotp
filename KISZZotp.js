@@ -10,7 +10,7 @@ const C = {
     TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
     CHAT_ID: '8276813899',
     OWNER: '6283147801427',
-    VER: '2.6.0',
+    VER: '2.7.0',
     TIMEOUT: 120,
     POLL: 1,
 };
@@ -20,12 +20,9 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // ====== AUTO UPDATE ======
 function checkUpdate() {
     try {
-        // Cek apakah ini repo git
         if (!fs.existsSync('.git')) return;
         console.log(chalk.gray('🔄 Cek update...'));
-        // Fetch update dari remote
         execSync('git fetch', { stdio: 'ignore' });
-        // Cek apakah ada perubahan
         const status = execSync('git status -uno', { encoding: 'utf8' });
         if (status.includes('Your branch is behind')) {
             console.log(chalk.yellow('📢 Ada update baru! Mengunduh...'));
@@ -34,10 +31,15 @@ function checkUpdate() {
             process.exit(0);
         }
         console.log(chalk.green('✅ Sudah versi terbaru.'));
-    } catch (e) {
-        // Abaikan error (misal bukan repo git)
-        console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...'));
-    }
+    } catch { console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...')); }
+}
+
+// ====== NOTIFIKASI AKTIVITAS USER ======
+async function notifyOwner(action, user, detail = '') {
+    try {
+        const msg = '📢 *Aktivitas User*\n👤 ' + user + '\n📌 ' + action + (detail ? '\n📝 ' + detail : '');
+        await sendTG(msg, null);
+    } catch {}
 }
 
 // ====== LOGIN SYSTEM ======
@@ -86,7 +88,7 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
-// ====== LOG ACTIVITY ======
+// ====== LOG ACTIVITY (local) ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -98,16 +100,10 @@ function logActivity(user, action, detail) {
 
 // ====== CHANNEL (HARDCODE) ======
 function getChannel() {
-    // Langsung return link saluran tanpa perlu file channel.json
     return 'https://whatsapp.com/channel/0029Vb9WjJx5q08iyvQuSA3Q';
 }
-function setChannel(link) {
-    // Tidak digunakan lagi, tapi tetap ada untuk kompatibilitas
-    return true;
-}
-function delChannel() {
-    return true;
-}
+function setChannel(link) { return true; }
+function delChannel() { return true; }
 
 // ====== INFO ======
 function getInfo() {
@@ -217,7 +213,7 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-    }
+}
 
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
@@ -254,6 +250,7 @@ async function reqApp(user, id, dev) {
                             console.log(chalk.green('\n✅ APPROVED!'));
                             saveApp(id);
                             logActivity(user, 'APPROVED', id);
+                            await notifyOwner('✅ APPROVED', user, 'ID: ' + id);
                             return true;
                         } else if (d === 'den_' + code) {
                             await ansCB(cid, '❌ Ditolak.');
@@ -290,6 +287,7 @@ function getLoginUser() {
             if (loginUser(username, pass)) {
                 setCurrentUser(username);
                 console.log(chalk.green('✅ Login berhasil!'));
+                await notifyOwner('🔓 LOGIN', username, '');
                 return username;
             }
             attempts--;
@@ -307,6 +305,7 @@ function getLoginUser() {
         createUser(username, pass);
         setCurrentUser(username);
         console.log(chalk.green('✅ Akun berhasil dibuat!'));
+        await notifyOwner('🆕 USER BARU', username, '');
         return username;
     }
 }
@@ -347,19 +346,21 @@ function showMenu(isO) {
     console.log(chalk.cyan('1.') + ' 🚀 Spammer OTP');
     console.log(chalk.cyan('2.') + ' 🐛 Lapor Bug');
     console.log(chalk.cyan('3.') + ' 🔄 Cek Update');
-    console.log(chalk.cyan('8.') + ' 📢 Join Saluran KISZZ');
+    console.log(chalk.cyan('4.') + ' 📢 Join Saluran KISZZ');
     if (isO) {
         console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
         console.log(chalk.cyan('6.') + ' 📢 Set Info (Owner Only)');
         console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
     }
-    console.log(chalk.cyan('4.') + ' ❌ Keluar');
+    console.log(chalk.cyan('8.') + ' ❌ Keluar');
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
 async function spam(user, id, isO, isP) {
     console.clear();
     console.log(chalk.cyan('\n🚀 SPAMMER OTP\n'));
+    await notifyOwner('🚀 SPAM START', user, '');
+
     if (!isO && !isP) {
         const lim = getLimit(id);
         const today = new Date().toDateString();
@@ -411,6 +412,7 @@ async function spam(user, id, isO, isP) {
         }
         console.log('\n📱 ' + phone + '\n📤 ' + otp.length + '\n✅ ' + s + '\n❌ ' + f);
         logActivity(user, 'SPAM', 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
+        await notifyOwner('🎯 SPAM RESULT', user, 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
     }
     if (!isO && !isP) {
         const nc = incLimit(id);
@@ -434,6 +436,7 @@ function laporBug(user) {
             console.log(chalk.red('❌ Gagal membuka WhatsApp. Silakan hubungi manual ke nomor: ' + C.OWNER));
         }
         logActivity(user, 'LAPOR_BUG', '');
+        await notifyOwner('🐛 LAPOR BUG', user, '');
     }
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
@@ -443,10 +446,10 @@ function cekUpdate(user) {
     console.log(chalk.cyan('\n🔄 CEK UPDATE\n'));
     console.log(chalk.green('✅ Versi: ' + C.VER));
     logActivity(user, 'CEK_UPDATE', '');
+    await notifyOwner('🔄 CEK UPDATE', user, '');
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== FITUR OWNER DI TERMUX ======
 async function addPartnerMenu(user) {
     console.clear();
     console.log(chalk.green('\n👥 ADD PARTNER\n'));
@@ -462,6 +465,7 @@ async function addPartnerMenu(user) {
         saveApp(tid.trim());
         console.log(chalk.green('✅ ' + tid + ' ditambahkan!'));
         logActivity(user, 'ADD_PARTNER', tid);
+        await notifyOwner('👥 ADD PARTNER', user, 'ID: ' + tid);
     }
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
@@ -479,6 +483,7 @@ async function deletePartnerMenu(user) {
         remApp(tid.trim());
         console.log(chalk.green('✅ ' + tid + ' telah dihapus dari daftar partner.'));
         logActivity(user, 'DELETE_PARTNER', tid);
+        await notifyOwner('❌ DELETE PARTNER', user, 'ID: ' + tid);
     } else {
         console.log(chalk.yellow('⚠️ ' + tid + ' tidak ditemukan.'));
     }
@@ -497,12 +502,11 @@ async function setInfoMenu(user) {
     setInfo(info.trim());
     console.log(chalk.green('✅ Info berhasil disimpan: ' + info));
     logActivity(user, 'SET_INFO', info);
+    await notifyOwner('📢 SET INFO', user, 'Info: ' + info);
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-// ====== MAIN ======
 async function main() {
-    // Auto update
     checkUpdate();
 
     console.clear();
@@ -517,6 +521,8 @@ async function main() {
     const isOwner = userName.toLowerCase() === 'kiszzaja';
     const isPartner = isApp(termuxId);
 
+    // Notifikasi login via Telegram sudah ada di getLoginUser
+
     if (!isOwner) {
         if (!isApp(termuxId)) {
             console.log(chalk.yellow('\n🔐 Memerlukan approval owner.'));
@@ -527,6 +533,7 @@ async function main() {
         } else {
             console.log(chalk.green('\n✅ Sudah terdaftar sebagai partner!'));
             logActivity(userName, 'LOGIN', '');
+            await notifyOwner('🔓 LOGIN', userName, '');
             await sleep(1000);
         }
     } else {
@@ -605,7 +612,18 @@ async function main() {
                 laporBug(userName);
                 break;
             case '3':
-                cekUpdate(userName);
+                await cekUpdate(userName);
+                break;
+            case '4':
+                const channelLink = getChannel();
+                console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
+                console.log(chalk.green('✅ Membuka saluran...'));
+                try {
+                    execSync('termux-open-url "' + channelLink + '"');
+                } catch (e) {
+                    console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));
+                }
+                readlineSync.question(chalk.gray('\nTekan Enter...'));
                 break;
             case '5':
                 if (isOwner) await addPartnerMenu(userName);
@@ -620,21 +638,10 @@ async function main() {
                 else console.log(chalk.red('❌ Menu owner!'));
                 break;
             case '8':
-                const channelLink = getChannel();
-                console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
-                console.log(chalk.green('✅ Membuka saluran...'));
-                try {
-                    execSync('termux-open-url "' + channelLink + '"');
-                } catch (e) {
-                    console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));
-                }
-                readlineSync.question(chalk.gray('\nTekan Enter...'));
-                break;
-             case '0':
-                break;
                 console.log(chalk.green('\n👋 Sampai jumpa!'));
                 logoutUser();
                 logActivity(userName, 'LOGOUT', '');
+                await notifyOwner('👋 LOGOUT', userName, '');
                 process.exit(0);
             default:
                 console.log(chalk.red('❌ Salah!'));
