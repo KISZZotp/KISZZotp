@@ -215,7 +215,6 @@ function incLimit(id) {
         return d[id].count;
     } catch { return 0; }
 }
-
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
@@ -325,14 +324,18 @@ function getTotalUsers() {
     } catch { return 0; }
 }
 
-// ====== NEW HEADER DESIGN (sesuai foto) ======
+// ====== HEADER DESIGN SESUAI FOTO ======
 function showHeader(u, s, id, dev) {
     console.clear();
+    // Baris pertama: REQUEST NEWOTP OTP
     console.log(chalk.cyan('╔═══════════════════════════════════════════════╗'));
     console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.yellow('NEWOTP') + chalk.cyan('    ') + chalk.magenta('OTP') + chalk.cyan('       ║'));
+    // Baris kedua: REQUEST SENDING SPAMMER
     console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.cyan('SENDING') + chalk.cyan('   ') + chalk.red('SPAMMER') + chalk.cyan('   ║'));
+    // Baris ketiga: OFFSET (kosong) dan OFF
     console.log(chalk.cyan('║              ') + chalk.red('OFF') + chalk.cyan('                  ║'));
-    console.log(chalk.cyan('║         ') + chalk.white('BY KISZZaja') + chalk.cyan('            ║'));
+    // Baris keempat: BYkiszzaja (tanpa spasi)
+    console.log(chalk.cyan('║         ') + chalk.white('BYkiszzaja') + chalk.cyan('            ║'));
     console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
     console.log(chalk.cyan('║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
     console.log(chalk.cyan('║ ') + chalk.bold('📊 Status') + ': ' + s);
@@ -341,7 +344,7 @@ function showHeader(u, s, id, dev) {
     console.log(chalk.cyan('║ ') + chalk.bold('⏰ Waktu ') + ': ' + chalk.gray(getTime()));
     console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
     const totalUser = getTotalUsers();
-    console.log(chalk.cyan('║ ') + chalk.bold('👥 Total User') + ': ' + chalk.yellow(totalUser));
+    console.log(chalk.cyan('║ ') + chalk.bold('👥 User   ') + ': ' + chalk.yellow(totalUser));
     console.log(chalk.cyan('╚═══════════════════════════════════════════════╝'));
     console.log('');
     showInfoBox();
@@ -645,8 +648,4 @@ async function main() {
                 break;
             case '5':
                 if (isOwner) await addPartnerMenu(userName);
-                else console.log(chalk.red('❌ Menu owner!'));
-                break;
-            case '6':
-                if (isOwner) await setInfoMenu(userName);
-          
+        
