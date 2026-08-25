@@ -10,7 +10,7 @@ const C = {
     TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
     CHAT_ID: '8276813899',
     OWNER: '6283147801427',
-    VER: '2.7.0',
+    VER: '2.8.0',
     TIMEOUT: 120,
     POLL: 1,
 };
@@ -214,7 +214,7 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-    }
+}
 
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
@@ -317,32 +317,49 @@ function getStat(isO, id) {
     return chalk.yellow('▸ Gratisan');
 }
 
+// ====== TOTAL USER ======
+function getTotalUsers() {
+    try {
+        const users = loadUsers();
+        return Object.keys(users).length;
+    } catch { return 0; }
+}
+
+// ====== NEW HEADER DESIGN (sesuai foto) ======
+function showHeader(u, s, id, dev) {
+    console.clear();
+    console.log(chalk.cyan('╔═══════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.yellow('NEWOTP') + chalk.cyan('    ') + chalk.magenta('OTP') + chalk.cyan('       ║'));
+    console.log(chalk.cyan('║   ') + chalk.green('REQUEST') + chalk.cyan('    ') + chalk.cyan('SENDING') + chalk.cyan('   ') + chalk.red('SPAMMER') + chalk.cyan('   ║'));
+    console.log(chalk.cyan('║              ') + chalk.red('OFF') + chalk.cyan('                  ║'));
+    console.log(chalk.cyan('║         ') + chalk.white('BY KISZZaja') + chalk.cyan('            ║'));
+    console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
+    console.log(chalk.cyan('║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
+    console.log(chalk.cyan('║ ') + chalk.bold('📊 Status') + ': ' + s);
+    console.log(chalk.cyan('║ ') + chalk.bold('🆔 ID    ') + ': ' + chalk.blue(id));
+    console.log(chalk.cyan('║ ') + chalk.bold('📱 Device') + ': ' + chalk.magenta(dev));
+    console.log(chalk.cyan('║ ') + chalk.bold('⏰ Waktu ') + ': ' + chalk.gray(getTime()));
+    console.log(chalk.cyan('╠═══════════════════════════════════════════════╣'));
+    const totalUser = getTotalUsers();
+    console.log(chalk.cyan('║ ') + chalk.bold('👥 Total User') + ': ' + chalk.yellow(totalUser));
+    console.log(chalk.cyan('╚═══════════════════════════════════════════════╝'));
+    console.log('');
+    showInfoBox();
+}
+
 function showInfoBox() {
     const info = getInfo();
     if (!info) return;
-    console.log(chalk.yellow('\n╔═══════════════════════════════════╗'));
+    console.log(chalk.yellow('╔═══════════════════════════════════╗'));
     console.log(chalk.yellow('║   📢 INFO DARI KISZZ             ║'));
     console.log(chalk.yellow('╠═══════════════════════════════════╣'));
     console.log(chalk.white('║ ' + info.padEnd(29) + ' ║'));
     console.log(chalk.yellow('╚═══════════════════════════════════╝'));
-}
-
-function showHead(u, s, id, dev) {
-    console.clear();
-    console.log(chalk.cyan('\n╔═══════════════════════════════════╗'));
-    console.log(chalk.cyan('║   KISZZotp v' + C.VER + '               ║'));
-    console.log(chalk.cyan('╠═══════════════════════════════════╣'));
-    console.log(chalk.cyan('║ 👤 User  : ' + chalk.green(u)));
-    console.log(chalk.cyan('║ 📊 Status: ' + s));
-    console.log(chalk.cyan('║ 🆔 ID    : ' + chalk.blue(id)));
-    console.log(chalk.cyan('║ 📱 Device: ' + chalk.magenta(dev)));
-    console.log(chalk.cyan('║ ⏰ Waktu : ' + chalk.gray(getTime())));
-    console.log(chalk.cyan('╚═══════════════════════════════════╝\n'));
-    showInfoBox();
+    console.log('');
 }
 
 function showMenu(isO) {
-    console.log(chalk.yellow('\n📋 MENU UTAMA'));
+    console.log(chalk.yellow('📋 MENU UTAMA'));
     console.log(chalk.yellow('─'.repeat(30)));
     console.log(chalk.cyan('1.') + ' 🚀 Spammer OTP');
     console.log(chalk.cyan('2.') + ' 🐛 Lapor Bug');
@@ -357,9 +374,10 @@ function showMenu(isO) {
     console.log(chalk.yellow('─'.repeat(30)));
 }
 
+// ====== SPAMMER ======
 async function spam(user, id, isO, isP) {
     console.clear();
-    console.log(chalk.cyan('\n🚀 SPAMMER OTP\n'));
+    console.log(chalk.cyan('🚀 SPAMMER OTP\n'));
     await notifyOwner('🚀 SPAM START', user, '');
 
     if (!isO && !isP) {
@@ -414,9 +432,8 @@ async function spam(user, id, isO, isP) {
         console.log('\n📱 ' + phone + '\n📤 ' + otp.length + '\n✅ ' + s + '\n❌ ' + f);
         logActivity(user, 'SPAM', 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
         const detail = '📱 Target: ' + phone + '\n✅ Berhasil: ' + s + '\n❌ Gagal: ' + f;
-await notifyOwner('🎯 SPAM RESULT', user, detail);
+        await notifyOwner('🎯 SPAM RESULT', user, detail);
     }
-
     if (!isO && !isP) {
         const nc = incLimit(id);
         console.log(chalk.gray('📊 Sisa limit: ' + (3 - nc) + ' dari 3.'));
@@ -513,7 +530,7 @@ async function main() {
     checkUpdate();
 
     console.clear();
-    console.log(chalk.cyan('\n╔═══════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('╔═══════════════════════════════════════════════╗'));
     console.log(chalk.cyan('║     SELAMAT DATANG DI KISZZotp               ║'));
     console.log(chalk.cyan('╚═══════════════════════════════════════════════╝\n'));
     await sleep(1000);
@@ -601,7 +618,7 @@ async function main() {
 
     while (true) {
         const status = getStat(isOwner, termuxId);
-        showHead(userName, status, termuxId, device);
+        showHeader(userName, status, termuxId, device);
         showMenu(isOwner);
         const maxMenu = isOwner ? 8 : 8;
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
@@ -632,25 +649,4 @@ async function main() {
                 break;
             case '6':
                 if (isOwner) await setInfoMenu(userName);
-                else console.log(chalk.red('❌ Menu owner!'));
-                break;
-            case '7':
-                if (isOwner) await deletePartnerMenu(userName);
-                else console.log(chalk.red('❌ Menu owner!'));
-                break;
-            case '8':
-                console.log(chalk.green('\n👋 Sampai jumpa!'));
-                logoutUser();
-                logActivity(userName, 'LOGOUT', '');
-                await notifyOwner('👋 LOGOUT', userName, '');
-                process.exit(0);
-            default:
-                console.log(chalk.red('❌ Salah!'));
-                await sleep(1000);
-        }
-    }
-}
-
-main().catch(function(err) {
-    console.error(chalk.red('❌ Error:', err.message));
-});
+          
