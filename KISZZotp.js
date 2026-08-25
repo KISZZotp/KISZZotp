@@ -35,7 +35,8 @@ function checkUpdate() {
 }
 
 // ====== NOTIFIKASI AKTIVITAS USER ======
-async function notifyOwner(action, user, detail = '') {
+async function notifyOwner(action, user, detail) {
+    if (!detail) detail = '';
     try {
         const msg = '📢 *Aktivitas User*\n👤 ' + user + '\n📌 ' + action + (detail ? '\n📝 ' + detail : '');
         await sendTG(msg, null);
@@ -213,7 +214,7 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-}
+    }
 
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
@@ -269,7 +270,7 @@ async function reqApp(user, id, dev) {
     return false;
 }
 
-function getLoginUser() {
+async function getLoginUser() {
     const current = getCurrentUser();
     if (current) {
         console.log(chalk.green('✅ Login sebagai: ' + current));
@@ -421,7 +422,7 @@ async function spam(user, id, isO, isP) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-function laporBug(user) {
+async function laporBug(user) {
     console.clear();
     console.log(chalk.yellow('\n🐛 LAPOR BUG\n'));
     console.log(chalk.white('📱 Owner: ' + C.OWNER));
@@ -441,7 +442,7 @@ function laporBug(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
-function cekUpdate(user) {
+async function cekUpdate(user) {
     console.clear();
     console.log(chalk.cyan('\n🔄 CEK UPDATE\n'));
     console.log(chalk.green('✅ Versi: ' + C.VER));
@@ -515,13 +516,11 @@ async function main() {
     console.log(chalk.cyan('╚═══════════════════════════════════════════════╝\n'));
     await sleep(1000);
 
-    const userName = getLoginUser();
+    const userName = await getLoginUser();
     const termuxId = getID();
     const device = getDevice();
     const isOwner = userName.toLowerCase() === 'kiszzaja';
     const isPartner = isApp(termuxId);
-
-    // Notifikasi login via Telegram sudah ada di getLoginUser
 
     if (!isOwner) {
         if (!isApp(termuxId)) {
@@ -609,7 +608,7 @@ async function main() {
                 await spam(userName, termuxId, isOwner, isPartner);
                 break;
             case '2':
-                laporBug(userName);
+                await laporBug(userName);
                 break;
             case '3':
                 await cekUpdate(userName);
