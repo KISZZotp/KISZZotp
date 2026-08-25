@@ -413,8 +413,10 @@ async function spam(user, id, isO, isP) {
         }
         console.log('\n📱 ' + phone + '\n📤 ' + otp.length + '\n✅ ' + s + '\n❌ ' + f);
         logActivity(user, 'SPAM', 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
-        await notifyOwner('🎯 SPAM RESULT', user, 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
+        const detail = '📱 Target: ' + phone + '\n✅ Berhasil: ' + s + '\n❌ Gagal: ' + f;
+await notifyOwner('🎯 SPAM RESULT', user, detail);
     }
+
     if (!isO && !isP) {
         const nc = incLimit(id);
         console.log(chalk.gray('📊 Sisa limit: ' + (3 - nc) + ' dari 3.'));
