@@ -214,7 +214,8 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-}
+                                                }
+
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
@@ -328,11 +329,12 @@ function getTotalUsers() {
 function showHeader(u, s, id, dev) {
     console.clear();
 
+    // ANSI color codes
     const RED = '\x1b[1;31m';
     const WHITE = '\x1b[1;37m';
     const RESET = '\x1b[0m';
 
-    console.log(`${RED}`);
+    console.log(RED);
     console.log('╔════════════════════════════════════════════════════════════╗');
     console.log('║                                                            ║');
     console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗    ║');
@@ -349,13 +351,13 @@ function showHeader(u, s, id, dev) {
     console.log('║                   ╚██████╔╝   ██║   ██║                   ║');
     console.log('║                    ╚═════╝    ╚═╝   ╚═╝                   ║');
     console.log('║                                                            ║');
-    console.log(`${WHITE}║                    BY kiszzaja${RED}                         ║`);
+    console.log(WHITE + '║                    BY kiszzaja' + RED + '                         ║');
     console.log('║                                                            ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
-    console.log(`${RESET}`);
+    console.log(RESET);
     console.log('');
 
-    // Info user & total user
+    // User info dan total user
     console.log(chalk.cyan('╔════════════════════════════════════════════════════════════╗'));
     console.log(chalk.cyan('║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
     console.log(chalk.cyan('║ ') + chalk.bold('📊 Status') + ': ' + s);
@@ -645,4 +647,4 @@ async function main() {
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
         switch (choice) {
             case '1':
-                await spam(us
+        
