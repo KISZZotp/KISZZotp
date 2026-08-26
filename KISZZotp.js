@@ -205,7 +205,6 @@ function incLimit(id) {
         return d[id].count;
     } catch { return 0; }
 }
-
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
@@ -314,7 +313,7 @@ function getTotalUsers() {
     } catch { return 0; }
 }
 
-
+// ====== HEADER (PERSIS SEPERTI YANG KAMU KASIH) ======
 function showHeader(u, s, id, dev) {
     console.clear();
 
@@ -324,23 +323,23 @@ function showHeader(u, s, id, dev) {
 
     console.log(RED);
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║                                                                       ║');
-    console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗          ║');
-    console.log('║        ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║         ║');
-    console.log('║        ███████╗██████╔╝███████║██╔████╔██║██╔████╔██║         ║');
-    console.log('║        ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║██║╚██╔╝██║         ║');
-    console.log('║        ███████║██║     ██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║           ║');
-    console.log('║        ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝            ║');
-    console.log('║                                                                       ║');
-    console.log('║                    ██████╗ ████████╗██████╗                      ║');
-    console.log('║                   ██╔═══██╗╚══██╔══╝██╔══██╗                     ║');
-    console.log('║                   ██║   ██║   ██║   ██████╔╝                       ║');
-    console.log('║                   ██║   ██║   ██║   ██╔═══╝                        ║');
-    console.log('║                   ╚██████╔╝   ██║   ██║                            ║');
-    console.log('║                    ╚═════╝    ╚═╝   ╚═╝                            ║');
-    console.log('║                                                                       ║');
-    console.log(WHITE + '║                    BY kiszzaja' + RED + '                     ║');
-    console.log('║                                                                       ║');
+    console.log('║                                                            ║');
+    console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗    ║');
+    console.log('║        ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║    ║');
+    console.log('║        ███████╗██████╔╝███████║██╔████╔██║██╔████╔██║    ║');
+    console.log('║        ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║██║╚██╔╝██║    ║');
+    console.log('║        ███████║██║     ██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║    ║');
+    console.log('║        ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝    ║');
+    console.log('║                                                            ║');
+    console.log('║                    ██████╗ ████████╗██████╗               ║');
+    console.log('║                   ██╔═══██╗╚══██╔══╝██╔══██╗              ║');
+    console.log('║                   ██║   ██║   ██║   ██████╔╝              ║');
+    console.log('║                   ██║   ██║   ██║   ██╔═══╝               ║');
+    console.log('║                   ╚██████╔╝   ██║   ██║                   ║');
+    console.log('║                    ╚═════╝    ╚═╝   ╚═╝                   ║');
+    console.log('║                                                            ║');
+    console.log(WHITE + '║                    BY kiszzaja' + RED + '                         ║');
+    console.log('║                                                            ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
     console.log(RESET);
     console.log('');
@@ -361,9 +360,9 @@ function showInfoBox() {
     const info = getInfo();
     if (!info) return;
     console.log(chalk.yellow('╔═══════════════════════════════════╗'));
-    console.log(chalk.yellow('║   📢 INFO DARI KISZZ                    ║'));
+    console.log(chalk.yellow('║   📢 INFO DARI KISZZ             ║'));
     console.log(chalk.yellow('╠═══════════════════════════════════╣'));
-    console.log(chalk.white('║ ' + info.padEnd(29) + '                  ║'));
+    console.log(chalk.white('║ ' + info.padEnd(29) + ' ║'));
     console.log(chalk.yellow('╚═══════════════════════════════════╝'));
     console.log('');
 }
@@ -382,7 +381,7 @@ function showMenu(isO) {
     }
     console.log(chalk.cyan('8.') + ' ❌ Keluar');
     console.log(chalk.yellow('─'.repeat(30)));
-                 }
+        }
 // ====== SPAMMER OTP ======
 async function spam(user, id, isO, isP) {
     console.clear();
