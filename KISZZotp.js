@@ -41,6 +41,7 @@ async function notifyOwner(action, user, detail) {
     } catch {}
 }
 
+// ====== LOGIN SYSTEM (dengan penyimpanan ID) ======
 function loadUsers() {
     try {
         if (!fs.existsSync('users.json')) return {};
@@ -57,10 +58,17 @@ function getUser(username) {
     const users = loadUsers();
     return users[username] || null;
 }
-function createUser(username, password) {
+function createUser(username, password, termuxId) {
     const users = loadUsers();
     if (users[username]) return false;
-    users[username] = { password, created: new Date().toISOString() };
+    users[username] = { password, created: new Date().toISOString(), termuxId: termuxId || '' };
+    saveUsers(users);
+    return true;
+}
+function updateUserTermuxId(username, termuxId) {
+    const users = loadUsers();
+    if (!users[username]) return false;
+    users[username].termuxId = termuxId;
     saveUsers(users);
     return true;
 }
@@ -86,6 +94,49 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
+function getUsernameByTermuxId(termuxId) {
+    const users = loadUsers();
+    for (const [name, data] of Object.entries(users)) {
+        if (data.termuxId === termuxId) return name;
+    }
+    return null;
+}
+
+function getAllUsers() {
+    try {
+        const users = loadUsers();
+        return Object.keys(users);
+    } catch { return []; }
+}
+
+function listAllUsers() {
+    const users = getAllUsers();
+    if (users.length === 0) {
+        console.log(chalk.yellow('📋 Belum ada user yang terdaftar.'));
+        return;
+    }
+    console.log(chalk.cyan('📋 Daftar User (Nama + ID):'));
+    users.forEach(function(u, i) {
+        const data = getUser(u);
+        const id = data && data.termuxId ? data.termuxId : '-';
+        console.log(chalk.white((i+1) + '. ' + u + ' (ID: ' + id + ')'));
+    });
+}
+
+function listAllPartners() {
+    const partners = getApprovedList();
+    if (partners.length === 0) {
+        console.log(chalk.yellow('📋 Belum ada partner.'));
+        return;
+    }
+    console.log(chalk.cyan('📋 Daftar Partner (ID + Nama):'));
+    partners.forEach(function(p, i) {
+        const name = getUsernameByTermuxId(p) || 'Unknown';
+        console.log(chalk.white((i+1) + '. ' + p + ' (' + name + ')'));
+    });
+}
+
+// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -269,6 +320,8 @@ async function getLoginUser() {
     username = username.trim();
     if (!username) username = 'Anonymous';
 
+    const termuxId = getID();
+
     const user = getUser(username);
     if (user) {
         let attempts = 3;
@@ -276,6 +329,8 @@ async function getLoginUser() {
             const pass = readlineSync.question(chalk.cyan('Masukkan password: '), { hideEchoBack: true });
             if (loginUser(username, pass)) {
                 setCurrentUser(username);
+                // Simpan ID terbaru
+                updateUserTermuxId(username, termuxId);
                 console.log(chalk.green('✅ Login berhasil!'));
                 await notifyOwner('🔓 LOGIN', username, '');
                 return username;
@@ -292,7 +347,7 @@ async function getLoginUser() {
             console.log(chalk.red('❌ Password minimal 4 karakter!'));
             process.exit(1);
         }
-        createUser(username, pass);
+        createUser(username, pass, termuxId);
         setCurrentUser(username);
         console.log(chalk.green('✅ Akun berhasil dibuat!'));
         await notifyOwner('🆕 USER BARU', username, '');
@@ -311,38 +366,6 @@ function getTotalUsers() {
         const users = loadUsers();
         return Object.keys(users).length;
     } catch { return 0; }
-}
-
-// ====== DAFTAR USER & PARTNER ======
-function getAllUsers() {
-    try {
-        const users = loadUsers();
-        return Object.keys(users);
-    } catch { return []; }
-}
-
-function listAllUsers() {
-    const users = getAllUsers();
-    if (users.length === 0) {
-        console.log(chalk.yellow('📋 Belum ada user yang terdaftar.'));
-        return;
-    }
-    console.log(chalk.cyan('📋 Daftar User:'));
-    users.forEach(function(u, i) {
-        console.log(chalk.white((i+1) + '. ' + u));
-    });
-}
-
-function listAllPartners() {
-    const partners = getApprovedList();
-    if (partners.length === 0) {
-        console.log(chalk.yellow('📋 Belum ada partner.'));
-        return;
-    }
-    console.log(chalk.cyan('📋 Daftar Partner (ID):'));
-    partners.forEach(function(p, i) {
-        console.log(chalk.white((i+1) + '. ' + p));
-    });
 }
 
 // ====== HEADER ======
@@ -416,7 +439,7 @@ function showMenu(isO) {
         console.log(chalk.cyan('8.') + ' ❌ Keluar');
     }
     console.log(chalk.yellow('─'.repeat(30)));
-                }
+}
 // ====== SPAMMER OTP ======
 async function spam(user, id, isO, isP) {
     console.clear();
@@ -666,7 +689,11 @@ async function main() {
                                     if (users.length === 0) {
                                         await sendTG('📋 Belum ada user yang terdaftar.', null);
                                     } else {
-                                        const list = users.map(function(u, i) { return (i+1) + '. ' + u; }).join('\n');
+                                        const list = users.map(function(u, i) {
+                                            const data = getUser(u);
+                                            const id = data && data.termuxId ? data.termuxId : '-';
+                                            return (i+1) + '. ' + u + ' (ID: ' + id + ')';
+                                        }).join('\n');
                                         await sendTG('📋 *Daftar User:*\n' + list, null);
                                     }
                                 } else if (text.startsWith('/listpartners')) {
@@ -674,7 +701,10 @@ async function main() {
                                     if (partners.length === 0) {
                                         await sendTG('📋 Belum ada partner.', null);
                                     } else {
-                                        const list = partners.map(function(p, i) { return (i+1) + '. ' + p; }).join('\n');
+                                        const list = partners.map(function(p, i) {
+                                            const name = getUsernameByTermuxId(p) || 'Unknown';
+                                            return (i+1) + '. ' + p + ' (' + name + ')';
+                                        }).join('\n');
                                         await sendTG('📋 *Daftar Partner:*\n' + list, null);
                                     }
                                 } else {
