@@ -17,7 +17,6 @@ const C = {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ====== AUTO UPDATE ======
 function checkUpdate() {
     try {
         if (!fs.existsSync('.git')) return;
@@ -34,7 +33,6 @@ function checkUpdate() {
     } catch { console.log(chalk.gray('⚠️ Gagal cek update. Lanjut...')); }
 }
 
-// ====== NOTIFIKASI AKTIVITAS USER ======
 async function notifyOwner(action, user, detail) {
     if (!detail) detail = '';
     try {
@@ -43,7 +41,6 @@ async function notifyOwner(action, user, detail) {
     } catch {}
 }
 
-// ====== LOGIN SYSTEM ======
 function loadUsers() {
     try {
         if (!fs.existsSync('users.json')) return {};
@@ -89,7 +86,6 @@ function logoutUser() {
     try { if (fs.existsSync('current.json')) fs.unlinkSync('current.json'); return true; } catch { return false; }
 }
 
-// ====== LOG ACTIVITY ======
 function logActivity(user, action, detail) {
     if (!detail) detail = '';
     try {
@@ -99,14 +95,12 @@ function logActivity(user, action, detail) {
     } catch {}
 }
 
-// ====== CHANNEL (HARDCODE) ======
 function getChannel() {
     return 'https://whatsapp.com/channel/0029Vb9WjJx5q08iyvQuSA3Q';
 }
 function setChannel(link) { return true; }
 function delChannel() { return true; }
 
-// ====== INFO ======
 function getInfo() {
     try {
         if (!fs.existsSync('info.json')) return null;
@@ -124,7 +118,6 @@ function delInfo() {
     try { if (fs.existsSync('info.json')) fs.unlinkSync('info.json'); return true; } catch { return false; }
 }
 
-// ====== UTILITY ======
 function getID() {
     try { return execSync('id -u').toString().trim() + '@' + os.hostname(); } catch { return 'unknown'; }
 }
@@ -138,7 +131,6 @@ function getDevice() {
 function getTime() { return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }); }
 function genCode() { return crypto.randomInt(100000, 999999).toString(); }
 
-// ====== TELEGRAM ======
 async function sendTG(text, kb) {
     if (!kb) kb = null;
     try {
@@ -164,7 +156,6 @@ async function getUpd(off) {
     } catch { return []; }
 }
 
-// ====== APPROVAL ======
 function isApp(id) {
     try {
         if (!fs.existsSync('approved.json')) return false;
@@ -194,7 +185,6 @@ function getApprovedList() {
     } catch { return []; }
 }
 
-// ====== LIMIT ======
 function getLimit(id) {
     try {
         if (!fs.existsSync('limits.json')) return { count: 0, date: new Date().toDateString() };
@@ -214,7 +204,8 @@ function incLimit(id) {
         fs.writeFileSync('limits.json', JSON.stringify(d, null, 2));
         return d[id].count;
     } catch { return 0; }
-        }
+}
+
 // ====== REQUEST APPROVAL ======
 async function reqApp(user, id, dev) {
     const code = genCode();
@@ -316,7 +307,6 @@ function getStat(isO, id) {
     return chalk.yellow('▸ Gratisan');
 }
 
-// ====== TOTAL USER ======
 function getTotalUsers() {
     try {
         const users = loadUsers();
@@ -324,7 +314,7 @@ function getTotalUsers() {
     } catch { return 0; }
 }
 
-// ====== HEADER (PERSIS SEPERTI YANG KAMU KASIH) ======
+
 function showHeader(u, s, id, dev) {
     console.clear();
 
@@ -334,23 +324,23 @@ function showHeader(u, s, id, dev) {
 
     console.log(RED);
     console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║                                                            ║');
-    console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗    ║');
-    console.log('║        ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║    ║');
-    console.log('║        ███████╗██████╔╝███████║██╔████╔██║██╔████╔██║    ║');
-    console.log('║        ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║██║╚██╔╝██║    ║');
-    console.log('║        ███████║██║     ██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║    ║');
-    console.log('║        ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝    ║');
-    console.log('║                                                            ║');
-    console.log('║                    ██████╗ ████████╗██████╗               ║');
-    console.log('║                   ██╔═══██╗╚══██╔══╝██╔══██╗              ║');
-    console.log('║                   ██║   ██║   ██║   ██████╔╝              ║');
-    console.log('║                   ██║   ██║   ██║   ██╔═══╝               ║');
-    console.log('║                   ╚██████╔╝   ██║   ██║                   ║');
-    console.log('║                    ╚═════╝    ╚═╝   ╚═╝                   ║');
-    console.log('║                                                            ║');
-    console.log(WHITE + '║                    BY kiszzaja' + RED + '                         ║');
-    console.log('║                                                            ║');
+    console.log('║                                                                       ║');
+    console.log('║        ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗          ║');
+    console.log('║        ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║         ║');
+    console.log('║        ███████╗██████╔╝███████║██╔████╔██║██╔████╔██║         ║');
+    console.log('║        ╚════██║██╔═══╝ ██╔══██║██║╚██╔╝██║██║╚██╔╝██║         ║');
+    console.log('║        ███████║██║     ██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║           ║');
+    console.log('║        ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝            ║');
+    console.log('║                                                                       ║');
+    console.log('║                    ██████╗ ████████╗██████╗                      ║');
+    console.log('║                   ██╔═══██╗╚══██╔══╝██╔══██╗                     ║');
+    console.log('║                   ██║   ██║   ██║   ██████╔╝                       ║');
+    console.log('║                   ██║   ██║   ██║   ██╔═══╝                        ║');
+    console.log('║                   ╚██████╔╝   ██║   ██║                            ║');
+    console.log('║                    ╚═════╝    ╚═╝   ╚═╝                            ║');
+    console.log('║                                                                       ║');
+    console.log(WHITE + '║                    BY kiszzaja' + RED + '                     ║');
+    console.log('║                                                                       ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
     console.log(RESET);
     console.log('');
@@ -371,9 +361,9 @@ function showInfoBox() {
     const info = getInfo();
     if (!info) return;
     console.log(chalk.yellow('╔═══════════════════════════════════╗'));
-    console.log(chalk.yellow('║   📢 INFO DARI KISZZ             ║'));
+    console.log(chalk.yellow('║   📢 INFO DARI KISZZ                    ║'));
     console.log(chalk.yellow('╠═══════════════════════════════════╣'));
-    console.log(chalk.white('║ ' + info.padEnd(29) + ' ║'));
+    console.log(chalk.white('║ ' + info.padEnd(29) + '                  ║'));
     console.log(chalk.yellow('╚═══════════════════════════════════╝'));
     console.log('');
 }
@@ -392,8 +382,7 @@ function showMenu(isO) {
     }
     console.log(chalk.cyan('8.') + ' ❌ Keluar');
     console.log(chalk.yellow('─'.repeat(30)));
-}
-
+                 }
 // ====== SPAMMER OTP ======
 async function spam(user, id, isO, isP) {
     console.clear();
@@ -546,6 +535,7 @@ async function setInfoMenu(user) {
     readlineSync.question(chalk.gray('\nTekan Enter...'));
 }
 
+// ====== MAIN ======
 async function main() {
     checkUpdate();
 
@@ -644,4 +634,50 @@ async function main() {
         const choice = readlineSync.question(chalk.cyan('\nPilih menu [1-' + maxMenu + ']: '));
         switch (choice) {
             case '1':
-                await spam(userName, termuxId, isOwner, isPartne
+                await spam(userName, termuxId, isOwner, isPartner);
+                break;
+            case '2':
+                await laporBug(userName);
+                break;
+            case '3':
+                await cekUpdate(userName);
+                break;
+            case '4':
+                const channelLink = getChannel();
+                console.log(chalk.cyan('\n📢 *Saluran KISZZ:*\n' + channelLink));
+                console.log(chalk.green('✅ Membuka saluran...'));
+                try {
+                    execSync('termux-open-url "' + channelLink + '"');
+                } catch (e) {
+                    console.log(chalk.red('❌ Gagal membuka saluran. Silakan buka manual: ' + channelLink));
+                }
+                readlineSync.question(chalk.gray('\nTekan Enter...'));
+                break;
+            case '5':
+                if (isOwner) await addPartnerMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '6':
+                if (isOwner) await setInfoMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '7':
+                if (isOwner) await deletePartnerMenu(userName);
+                else console.log(chalk.red('❌ Menu owner!'));
+                break;
+            case '8':
+                console.log(chalk.green('\n👋 Sampai jumpa!'));
+                logoutUser();
+                logActivity(userName, 'LOGOUT', '');
+                await notifyOwner('👋 LOGOUT', userName, '');
+                process.exit(0);
+            default:
+                console.log(chalk.red('❌ Salah!'));
+                await sleep(1000);
+        }
+    }
+}
+
+main().catch(function(err) {
+    console.error(chalk.red('❌ Error:', err.message));
+});
